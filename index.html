@@ -160,7 +160,8 @@ select, input { font-family:var(--font); }
 .screen {
   display:none;
   min-height: calc(var(--phone-screen-h) - var(--role-h) - var(--header-h) - var(--nav-h));
-  padding-bottom: var(--nav-h);
+  padding-top: 8px;
+  padding-bottom: calc(var(--nav-h) + 36px);
 }
 .screen.active { display:block; }
 
@@ -524,16 +525,51 @@ select, input { font-family:var(--font); }
 /* ─────────────────────────────────────
    ③ QR DETAIL SCREEN
 ───────────────────────────────────── */
+#screen-qr { padding-top:0; padding-bottom:0; }
 .qr-wrap {
   min-height: calc(var(--phone-screen-h) - var(--role-h) - var(--header-h));
   display:flex; flex-direction:column; align-items:center;
   padding:20px 16px var(--nav-h); position:relative;
-  /* overflow:hidden を外す → ボタンがクリップされて押せなくなるため */
+  background:linear-gradient(135deg,#1B3A6B,#1E293B);
+  overflow:hidden;
 }
 .qr-canvas-bg {
   position:absolute; inset:0; z-index:0;
   transition:background 1s ease;
+  overflow:hidden;
 }
+
+/* 電車アニメーション */
+.train-layer {
+  position:absolute; bottom:38%; left:0; right:0;
+  height:60px; z-index:0; pointer-events:none;
+  overflow:hidden;
+}
+/* 線路 */
+.train-track {
+  position:absolute; bottom:8px; left:0; right:0; height:2px;
+  background:repeating-linear-gradient(90deg, rgba(255,255,255,.15) 0px, rgba(255,255,255,.15) 12px, transparent 12px, transparent 20px);
+}
+.train-track::after {
+  content:''; position:absolute; bottom:-4px; left:0; right:0; height:1px;
+  background:rgba(255,255,255,.06);
+}
+/* 電車本体 */
+.train-car {
+  position:absolute; bottom:12px;
+  animation: trainRun 8s linear infinite;
+}
+.train-car:nth-child(2) {
+  animation-delay: -4s;
+  opacity:.4;
+  bottom:14px;
+  animation-duration:12s;
+}
+@keyframes trainRun {
+  from { left:-120px; }
+  to   { left:calc(100% + 40px); }
+}
+.train-svg { width:100px; height:32px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
 
 .ticket-card {
   position:relative; z-index:1;
@@ -582,12 +618,6 @@ select, input { font-family:var(--font); }
 .qr-used-overlay p { font-size:15px; font-weight:700; color:#fff; }
 .qr-used-overlay small { font-size:11px; color:rgba(255,255,255,.6); }
 
-.ticket-clock {
-  font-family:var(--mono);
-  font-size:26px; font-weight:900; color:var(--user-primary);
-  letter-spacing:-.02em;
-}
-.ticket-clock-ms  { font-family:var(--mono); font-size:15px; color:var(--user-mid); opacity:.8; }
 .ticket-date      { font-size:11px; color:var(--n400); margin-bottom:10px; }
 
 .ticket-tags { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
@@ -873,6 +903,61 @@ select, input { font-family:var(--font); }
   -webkit-overflow-scrolling:touch;
   background: var(--bg); /* コンテンツ領域の背景色 */
 }
+
+/* ─────────────────────────────────────
+   ⓪ HOME SCREEN
+───────────────────────────────────── */
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+}
+.home-card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 12px;
+  aspect-ratio: 1;
+  cursor: pointer;
+  transition: all .18s;
+  border: 1.5px solid var(--n100);
+  text-align: center;
+}
+.home-card:active { transform: scale(.96); box-shadow: var(--shadow-md); }
+.home-card-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.home-card-icon svg { width: 28px; height: 28px; }
+.home-card-label { font-size: 15px; font-weight: 700; color: var(--n800); line-height: 1.3; }
+.home-card-sub { font-size: 11px; color: var(--n400); line-height: 1.4; }
+
+/* Screen back header */
+.screen-back-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 16px 2px;
+}
+.back-btn {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 14px; font-weight: 600; color: var(--user-primary);
+  cursor: pointer; padding: 4px 8px 4px 0;
+}
+.back-btn:active { opacity: .7; }
+.back-btn svg { width: 18px; height: 18px; }
+.screen-back-title { font-size: 16px; font-weight: 700; color: var(--n800); }
+
+/* Ticket select list (for send/cancel flows) */
+.tkt-select-header { padding: 20px 16px 8px; }
+.tkt-select-header h3 { font-size: 18px; font-weight: 700; color: var(--n800); margin-bottom: 4px; }
+.tkt-select-header p { font-size: 13px; color: var(--n400); line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -911,25 +996,77 @@ select, input { font-family:var(--font); }
 </header>
 
 <!-- ══════════════════════════════════════════════
+     SCREEN 0 — ホーム（マイページ）
+══════════════════════════════════════════════ -->
+<main class="screen active" id="screen-home" aria-label="ホーム">
+  <!-- 4つのアクションボタン -->
+  <div class="home-grid">
+    <div class="home-card" onclick="goToPurchase()" role="button" tabindex="0">
+      <div class="home-card-icon" style="background:var(--user-xlight)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--user-primary)" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>
+      </div>
+      <div class="home-card-label">切符を買う</div>
+      <div class="home-card-sub">乗車区間を選んで購入</div>
+    </div>
+    <div class="home-card" onclick="goToSend()" role="button" tabindex="0">
+      <div class="home-card-icon" style="background:var(--success-bg)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      </div>
+      <div class="home-card-label">切符を送る</div>
+      <div class="home-card-sub">家族や同行者へ譲渡</div>
+    </div>
+    <div class="home-card" onclick="goToReceive()" role="button" tabindex="0">
+      <div class="home-card-icon" style="background:var(--user-light)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--user-mid)" stroke-width="2"><path d="M12 3v13M6 11l6 6 6-6"/><path d="M4 20h16" opacity=".5"/></svg>
+      </div>
+      <div class="home-card-label">切符を受け取る</div>
+      <div class="home-card-sub">受取コードを入力</div>
+    </div>
+    <div class="home-card" onclick="goToCancelSelect()" role="button" tabindex="0">
+      <div class="home-card-icon" style="background:var(--danger-bg)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      </div>
+      <div class="home-card-label">購入をキャンセル</div>
+      <div class="home-card-sub">払い戻し手続き</div>
+    </div>
+  </div>
+
+  <!-- 保有チケット一覧 -->
+  <div class="sec-head"><span class="sec-title">保有チケット</span><span class="sec-count" id="home-ticket-count">0枚</span></div>
+  <div id="home-tickets-list"></div>
+  <div style="height:16px"></div>
+
+  <!-- デモ用視点切替パネル -->
+  <div class="demo-switcher-panel" aria-label="デモ用ユーザー切替">
+    <div class="dsp-header">
+      <span class="dsp-badge">DEMO</span>
+      <span class="dsp-label">視点を切り替えて確認</span>
+    </div>
+    <div class="dsp-toggle" role="group" aria-label="表示ユーザー">
+      <button class="dsp-btn active" id="dsw-a" onclick="switchUser('A')" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Aさん<span class="dsp-role">送る側</span>
+      </button>
+      <button class="dsp-btn" id="dsw-b" onclick="switchUser('B')" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Bさん<span class="dsp-role">受け取る側</span>
+        <span class="dsp-new-dot" id="dsp-new-dot" aria-label="新着チケットあり"></span>
+      </button>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════════════════════════════════
      SCREEN 1 — 購入
 ══════════════════════════════════════════════ -->
-<main class="screen active" id="screen-purchase" aria-label="乗車券購入">
+<div class="screen" id="screen-purchase" aria-label="乗車券購入">
+  <div class="screen-back-header">
+    <button class="back-btn" onclick="goHome()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      ホーム
+    </button>
+  </div>
   <div class="purchase-scroll">
-
-    <!-- 譲渡受取バナー -->
-    <div class="receive-banner" onclick="openReceiveModal()" role="button" tabindex="0" aria-label="譲渡チケットを受取る">
-      <div class="receive-banner-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
-          <path d="M12 3v13M6 11l6 6 6-6"/>
-          <path d="M4 20h16" opacity=".5"/>
-        </svg>
-      </div>
-      <div>
-        <div class="receive-banner-title">譲渡チケットを受取る</div>
-        <div class="receive-banner-sub">保護者から受取コードをもらった方はこちら</div>
-      </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
-    </div>
 
     <!-- 乗車区間 -->
     <div class="sec-head"><span class="sec-title">乗車区間</span></div>
@@ -1090,39 +1227,81 @@ select, input { font-family:var(--font); }
     </div>
 
   </div>
-</main>
+</div>
 
 <!-- ══════════════════════════════════════════════
-     SCREEN 2 — チケット一覧
+     SCREEN 2 — 切符を送る（チケット選択）
 ══════════════════════════════════════════════ -->
-<div class="screen" id="screen-tickets" aria-label="チケット一覧">
-  <!-- デモ用視点切替パネル -->
-  <div class="demo-switcher-panel" aria-label="デモ用ユーザー切替">
-    <div class="dsp-header">
-      <span class="dsp-badge">DEMO</span>
-      <span class="dsp-label">視点を切り替えて確認</span>
-    </div>
-    <div class="dsp-toggle" role="group" aria-label="表示ユーザー">
-      <button class="dsp-btn active" id="dsw-a" onclick="switchUser('A')" aria-pressed="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        Aさん<span class="dsp-role">送る側</span>
-      </button>
-      <button class="dsp-btn" id="dsw-b" onclick="switchUser('B')" aria-pressed="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        Bさん<span class="dsp-role">受け取る側</span>
-        <span class="dsp-new-dot" id="dsp-new-dot" aria-label="新着チケットあり"></span>
-      </button>
-    </div>
+<div class="screen" id="screen-send" aria-label="切符を送る">
+  <div class="screen-back-header">
+    <button class="back-btn" onclick="goHome()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      ホーム
+    </button>
   </div>
-  <!-- 動的リスト -->
-  <div id="tickets-list"></div>
+  <div class="tkt-select-header">
+    <h3>送るチケットを選択</h3>
+    <p>譲渡したいチケットをタップしてください</p>
+  </div>
+  <div id="send-tickets-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 2b — 購入をキャンセル（チケット選択）
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-cancel-select" aria-label="キャンセルするチケットを選択">
+  <div class="screen-back-header">
+    <button class="back-btn" onclick="goHome()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      ホーム
+    </button>
+  </div>
+  <div class="tkt-select-header">
+    <h3>キャンセルするチケットを選択</h3>
+    <p>払い戻ししたいチケットをタップしてください</p>
+  </div>
+  <div id="cancel-tickets-list"></div>
 </div>
 
 <!-- ══════════════════════════════════════════════
      SCREEN 3 — QR表示
 ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-qr" aria-label="QRコード表示">
-  <div class="qr-wrap">
+  <div class="qr-wrap" id="qr-wrap">
+
+    <!-- 電車走行アニメーション背景 -->
+    <div class="train-layer" id="train-layer">
+      <div class="train-track"></div>
+      <div class="train-car">
+        <svg class="train-svg" viewBox="0 0 120 38" fill="none">
+          <rect x="4" y="6" width="112" height="24" rx="6" fill="rgba(255,255,255,.25)"/>
+          <rect x="14" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.35)"/>
+          <rect x="28" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.35)"/>
+          <rect x="42" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.35)"/>
+          <rect x="56" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.35)"/>
+          <rect x="70" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.35)"/>
+          <rect x="84" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.35)"/>
+          <path d="M112 6h2a6 6 0 0 1 4 3l2 6h-8z" fill="rgba(255,255,255,.3)"/>
+          <circle cx="118" cy="16" r="2" fill="rgba(245,200,80,.7)"/>
+          <circle cx="22" cy="32" r="4" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+          <circle cx="52" cy="32" r="4" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+          <circle cx="82" cy="32" r="4" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+          <circle cx="106" cy="32" r="4" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="train-car">
+        <svg class="train-svg" viewBox="0 0 120 38" fill="none" style="width:60px;height:20px">
+          <rect x="4" y="6" width="112" height="24" rx="6" fill="rgba(255,255,255,.15)"/>
+          <rect x="14" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.2)"/>
+          <rect x="28" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.2)"/>
+          <rect x="42" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.2)"/>
+          <rect x="56" y="11" width="10" height="10" rx="2" fill="rgba(255,255,255,.2)"/>
+          <circle cx="22" cy="32" r="4" fill="rgba(255,255,255,.1)"/>
+          <circle cx="52" cy="32" r="4" fill="rgba(255,255,255,.1)"/>
+          <circle cx="82" cy="32" r="4" fill="rgba(255,255,255,.1)"/>
+        </svg>
+      </div>
+    </div>
 
     <div class="ticket-card">
       <div class="ticket-inner">
@@ -1166,8 +1345,6 @@ select, input { font-family:var(--font); }
           <!-- dynamic -->
         </div>
 
-        <div class="ticket-clock" id="tk-clock">--:--:--</div>
-        <div class="ticket-clock-ms" id="tk-ms" aria-hidden="true">.000</div>
         <div class="ticket-date" id="tk-date"></div>
       </div>
 
@@ -1189,7 +1366,7 @@ select, input { font-family:var(--font); }
     </div>
 
     <div class="qr-hint" id="qr-hint">
-      この画面はリアルタイムで変化しています<br>スクリーンショットでのご利用はできません
+      ※スクリーンショットされた切符は使用できません。
     </div>
   </div>
 </div>
@@ -1340,13 +1517,9 @@ select, input { font-family:var(--font); }
      BOTTOM NAV
 ══════════════════════════════════════════════ -->
 <nav class="bottom-nav" role="navigation" aria-label="メインナビゲーション">
-  <button class="nav-btn user-tab active" id="nav-purchase" onclick="showScreen('purchase')" aria-label="購入">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>
-    <span>購入</span>
-  </button>
-  <button class="nav-btn user-tab" id="nav-tickets" onclick="showScreen('tickets')" aria-label="チケット">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
-    <span>チケット</span>
+  <button class="nav-btn user-tab active" id="nav-home" onclick="goHome()" aria-label="ホーム">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>ホーム</span>
   </button>
   <!-- 区切り -->
   <div class="nav-separator" aria-hidden="true"></div>
@@ -1607,6 +1780,14 @@ function distLabel(f,t){
     pay:'apple', usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:null, owner:'A',
     _purchasedMs:Date.now()-600000, // 10分前に購入（手数料無料テスト用）
   }));
+  // Aさん: 譲渡済みチケット（Bさんへ譲渡）
+  tickets.push({
+    id:'TKR-T4F7G2H', groupId:null, from:'南栄', to:'大清水', fare:230, qty:1,
+    passengerType:'adult',
+    isGroupLead:true, issuedAt:td, issuedAtStr:'07:10:22', state:'transferred',
+    pay:'apple', usedAt:null, cancelledAt:null, xferCode:'ABC 123', xferTo:'Bさん', receivedFrom:null, owner:'A',
+    _purchasedMs:Date.now()-5400000,
+  });
   // Aさん: 使用済みチケット（こども料金）
   tickets.push({
     id:'TKR-Z9Y1W2P', groupId:null, from:'新豊橋', to:'高師', fare:110, qty:1,
@@ -1798,23 +1979,25 @@ function openQR(id){
 
 function startBg(){
   stopBg();
-  const bg=document.getElementById('qr-bg');
+  const wrap=document.getElementById('qr-wrap');
+  // 日付を1回だけセット
+  const n=new Date();
+  const days=['日','月','火','水','木','金','土'];
+  document.getElementById('tk-date').textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日（${days[n.getDay()]}）`;
+  // 背景グラデーションを絶え間なくゆらめかせる
   const raf2=()=>{
-    const n=new Date();
-    document.getElementById('tk-clock').textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
-    document.getElementById('tk-ms').textContent=`.${String(n.getMilliseconds()).padStart(3,'0')}`;
-    const days=['日','月','火','水','木','金','土'];
-    document.getElementById('tk-date').textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日（${days[n.getDay()]}）`;
     const s=Date.now()/1000;
-    const h1=(s*16)%360, h2=(h1+50)%360;
-    bg.style.background=`linear-gradient(${(s*10)%360}deg,hsl(${h1},55%,20%),hsl(${h2},45%,14%))`;
+    const h1=(s*8)%360, h2=(h1+60)%360, h3=(h1+120)%360;
+    const angle=(s*6)%360;
+    if(wrap) wrap.style.background=`linear-gradient(${angle}deg,hsl(${h1},50%,18%),hsl(${h2},45%,15%),hsl(${h3},40%,20%))`;
     raf=requestAnimationFrame(raf2);
   };
   raf2();
 }
 function stopBg(){
   if(raf){cancelAnimationFrame(raf);raf=null;}
-  document.getElementById('qr-bg').style.background='linear-gradient(135deg,#1B3A6B,#1E293B)';
+  const wrap=document.getElementById('qr-wrap');
+  if(wrap) wrap.style.background='linear-gradient(135deg,#1B3A6B,#1E293B)';
 }
 
 /* ────────── TICKET LIST ────────── */
@@ -1827,7 +2010,7 @@ function switchUser(user){
   // Bに切り替えた時は通知ドットを消す
   if(user==='B'){ const d=document.getElementById('dsp-new-dot'); if(d) d.classList.remove('show'); }
   activeTkt=null;
-  showScreen('tickets');
+  showScreen('home');
 }
 
 function renderList(){
@@ -1936,6 +2119,7 @@ function confirmTransfer(){
   // Bさんボタンに通知ドット表示
   const dot=document.getElementById('dsp-new-dot'); if(dot) dot.classList.add('show');
   showToast('譲渡完了 — Bさんが受取コードを入力します','success');
+  showScreen('home');
   // プレゼン用：受取モーダルをコード入力済みで即表示
   setTimeout(()=>openReceiveModalWithCode(xferCode), 700);
 }
@@ -2038,7 +2222,7 @@ function processCancel(){
 function closeCancelDone(){
   closeModal('modal-cancel');
   showToast('払い戻しが完了しました','success');
-  showScreen('tickets');
+  showScreen('home');
 }
 
 /* ────────── STAFF SCAN ────────── */
@@ -2085,8 +2269,8 @@ function resetScan(){
 }
 
 /* ────────── NAV ────────── */
-const SCREENS={purchase:'screen-purchase',tickets:'screen-tickets',qr:'screen-qr',scan:'screen-scan'};
-const NAV={purchase:'nav-purchase',tickets:'nav-tickets',qr:'nav-tickets',scan:'nav-scan'};
+const SCREENS={home:'screen-home',purchase:'screen-purchase',send:'screen-send','cancel-select':'screen-cancel-select',qr:'screen-qr',scan:'screen-scan'};
+const NAV={home:'nav-home',purchase:'nav-home',send:'nav-home','cancel-select':'nav-home',qr:'nav-home',scan:'nav-scan'};
 
 function showScreen(name){
   stopBg();
@@ -2120,9 +2304,172 @@ function showScreen(name){
     hbadge.textContent='DEMO'; hbadge.style.background=''; hbadge.style.color='';
   }
 
-  if(name==='tickets') renderList();
+  if(name==='home') renderHomeTickets();
+  if(name==='send') renderSendList();
+  if(name==='cancel-select') renderCancelList();
   if(name==='qr'&&activeTkt){ const t=tickets.find(x=>x.id===activeTkt); if(t&&(t.state==='valid'||t.state==='received')) startBg(); }
   if(name==='scan') resetScan();
+}
+
+/* ────────── HOME NAVIGATION ────────── */
+function goHome(){ showScreen('home'); }
+function goToPurchase(){ showScreen('purchase'); }
+function goToReceive(){ openReceiveModal(); }
+function goToSend(){ showScreen('send'); }
+function goToCancelSelect(){ showScreen('cancel-select'); }
+
+/* ────────── HOME TICKET LIST ────────── */
+function renderHomeTickets(){
+  const el=document.getElementById('home-tickets-list');
+  const countEl=document.getElementById('home-ticket-count');
+  if(!el) return;
+  const shown=tickets.filter(t=>(t.owner===currentUser)&&(t.qty===1||t.isGroupLead));
+  countEl.textContent=`${shown.length}枚`;
+
+  if(!shown.length){
+    el.innerHTML=`<div class="empty-wrap" style="padding:32px 20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;color:var(--n300);margin-bottom:8px"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+      <div class="empty-title" style="font-size:14px">チケットがありません</div>
+      <div class="empty-sub">「切符を買う」から乗車券をお求めください</div>
+    </div>`;
+    return;
+  }
+
+  const iconBg={valid:'var(--user-xlight)',received:'var(--user-xlight)',used:'var(--n100)',cancelled:'var(--danger-bg)',transferred:'var(--warning-bg)'};
+  const iconClr={valid:'var(--user-primary)',received:'var(--user-primary)',used:'var(--n400)',cancelled:'var(--danger)',transferred:'var(--warning)'};
+  const stateChip={
+    valid:'<span class="chip chip-green"><span class="dot pulse"></span>有効</span>',
+    received:'<span class="chip chip-blue"><span class="dot"></span>受取済み</span>',
+    used:'<span class="chip chip-gray">使用済み</span>',
+    cancelled:'<span class="chip chip-red">取消済み</span>',
+    transferred:'<span class="chip chip-amber">譲渡済み</span>',
+  };
+
+  const sections=[
+    {label:'有効なチケット',     filter:t=>t.state==='valid'},
+    {label:'譲渡されたチケット', filter:t=>t.state==='received'},
+    {label:'譲渡したチケット',   filter:t=>t.state==='transferred'},
+    {label:'使用済み',           filter:t=>t.state==='used'},
+    {label:'キャンセル済み',     filter:t=>t.state==='cancelled'},
+  ];
+
+  const sectionIcon={
+    '譲渡されたチケット':'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${clr}" stroke-width="2"><path d="M12 3v13M6 11l6 6 6-6"/><path d="M4 20h16" opacity=".5"/></svg>',
+    '譲渡したチケット':'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${clr}" stroke-width="2"><path d="M12 21V8M6 13l6-6 6 6"/><path d="M4 4h16" opacity=".5"/></svg>',
+  };
+
+  let html='';
+  sections.forEach(sec=>{
+    const list=shown.filter(sec.filter);
+    if(!list.length) return;
+    html+=`<div class="sec-head"><span class="sec-title">${sec.label}</span><span class="sec-count">${list.length}枚</span></div>
+    <div style="padding:0 16px"><div class="card">`;
+    list.forEach((t,i)=>{
+      const qBadge=t.qty>1?`<span class="chip chip-blue" style="font-size:10px">${t.qty}枚</span>`:'';
+      const childBadge=t.passengerType==='child'?`<span class="chip chip-amber" style="font-size:10px">👦 こども</span>`:'';
+      const clickable=t.state!=='transferred';
+      let xferInfo='';
+      if(t.state==='received'&&t.receivedFrom) xferInfo=`<span class="tkt-time">${t.receivedFrom}から受取</span>`;
+      else if(t.state==='transferred'&&t.xferTo) xferInfo=`<span class="tkt-time">${t.xferTo}へ譲渡</span>`;
+      else if(t.state==='transferred') xferInfo=`<span class="tkt-time">譲渡コード発行済み</span>`;
+      const useSectionIcon=sectionIcon[sec.label];
+      const ibg=iconBg[t.state]; const iclr=iconClr[t.state];
+      const iconSvg=useSectionIcon
+        ? useSectionIcon.replace(/\$\{clr\}/g,iclr)
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${iclr}" stroke-width="2"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>`;
+
+      html+=`${i>0?'<div class="divider"></div>':''}
+      <div class="tkt-item${clickable?'':' tkt-item--dim'}" ${clickable?`onclick="openQR('${t.id}')" role="button" tabindex="0"`:''} aria-label="${t.from}から${t.to}への乗車券">
+        <div class="tkt-icon" style="background:${ibg}">${iconSvg}</div>
+        <div class="tkt-body">
+          <div class="tkt-route">${t.from}  →  ${t.to} ${qBadge} ${childBadge}</div>
+          <div class="tkt-meta">${stateChip[t.state]}<span class="tkt-time">${t.issuedAtStr} 購入</span>${xferInfo}</div>
+        </div>
+        <div class="tkt-right">
+          <div class="tkt-fare">¥${(t.fare*(t.qty||1)).toLocaleString()}</div>
+          ${clickable?'<div class="tkt-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>':''}
+        </div>
+      </div>`;
+    });
+    html+='</div></div><div style="height:8px"></div>';
+  });
+  el.innerHTML=html;
+}
+
+/* ────────── SEND TICKET LIST ────────── */
+function renderSendList(){
+  const el=document.getElementById('send-tickets-list');
+  if(!el) return;
+  const valid=tickets.filter(t=>t.owner===currentUser&&(t.state==='valid'||t.state==='received')&&(t.qty===1||t.isGroupLead));
+  if(!valid.length){
+    el.innerHTML=`<div class="empty-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;color:var(--n300);margin-bottom:8px"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+      <div class="empty-title">送れるチケットがありません</div>
+      <div class="empty-sub">有効なチケットを先に購入してください</div>
+    </div>`;
+    return;
+  }
+  let html='<div style="padding:0 16px"><div class="card">';
+  valid.forEach((t,i)=>{
+    const childBadge=t.passengerType==='child'?`<span class="chip chip-amber" style="font-size:10px">👦 こども</span>`:'';
+    html+=`${i>0?'<div class="divider"></div>':''}
+    <div class="tkt-item" onclick="selectSendTicket('${t.id}')" role="button" tabindex="0">
+      <div class="tkt-icon" style="background:var(--user-xlight)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--user-primary)" stroke-width="2"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+      </div>
+      <div class="tkt-body">
+        <div class="tkt-route">${t.from}  →  ${t.to} ${childBadge}</div>
+        <div class="tkt-meta"><span class="chip chip-green"><span class="dot pulse"></span>有効</span><span class="tkt-time">¥${t.fare.toLocaleString()}</span></div>
+      </div>
+      <div class="tkt-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    </div>`;
+  });
+  html+='</div></div>';
+  el.innerHTML=html;
+}
+
+function selectSendTicket(id){
+  activeTkt=id;
+  openTransferModal();
+}
+
+/* ────────── CANCEL TICKET LIST ────────── */
+function renderCancelList(){
+  const el=document.getElementById('cancel-tickets-list');
+  if(!el) return;
+  const valid=tickets.filter(t=>t.owner===currentUser&&(t.state==='valid'||t.state==='received')&&(t.qty===1||t.isGroupLead));
+  if(!valid.length){
+    el.innerHTML=`<div class="empty-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;color:var(--n300);margin-bottom:8px"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+      <div class="empty-title">キャンセルできるチケットがありません</div>
+      <div class="empty-sub">有効なチケットがある場合のみ操作できます</div>
+    </div>`;
+    return;
+  }
+  let html='<div style="padding:0 16px"><div class="card">';
+  valid.forEach((t,i)=>{
+    const childBadge=t.passengerType==='child'?`<span class="chip chip-amber" style="font-size:10px">👦 こども</span>`:'';
+    const fee=calcCancelFee(t);
+    const feeBadge=fee===0?'<span class="chip chip-green" style="font-size:9px">手数料無料</span>':`<span class="chip chip-gray" style="font-size:9px">手数料¥${fee}</span>`;
+    html+=`${i>0?'<div class="divider"></div>':''}
+    <div class="tkt-item" onclick="selectCancelTicket('${t.id}')" role="button" tabindex="0">
+      <div class="tkt-icon" style="background:var(--danger-bg)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      </div>
+      <div class="tkt-body">
+        <div class="tkt-route">${t.from}  →  ${t.to} ${childBadge}</div>
+        <div class="tkt-meta">${feeBadge}<span class="tkt-time">¥${t.fare.toLocaleString()}</span></div>
+      </div>
+      <div class="tkt-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    </div>`;
+  });
+  html+='</div></div>';
+  el.innerHTML=html;
+}
+
+function selectCancelTicket(id){
+  activeTkt=id;
+  openCancelModal();
 }
 
 /* ────────── MODAL ────────── */
@@ -2150,6 +2497,7 @@ css.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate
 document.head.appendChild(css);
 
 onRouteChange(); // set initial fare display
+renderHomeTickets(); // ホーム画面のチケット一覧初期描画
 </script>
 
   </div><!-- /.phone-screen -->
