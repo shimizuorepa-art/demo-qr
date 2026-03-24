@@ -56,8 +56,9 @@
   /* Layout */
   --header-h: 56px;
   --role-h:   36px;
-  --nav-h:    calc(64px + env(safe-area-inset-bottom,0px));
-  --phone-screen-h: 842px;
+  --safe-bottom: 12px; /* 底部角丸20pxに合わせた最小パディング */
+  --nav-h:    calc(58px + var(--safe-bottom));
+  --phone-screen-h: 820px;
 }
 
 /* ─────────────────────────────────────
@@ -170,7 +171,6 @@ select, input { font-family:var(--font); }
   position:absolute; bottom:0; left:0; right:0;
   width:100%; max-width:none; transform:none;
   display:flex; z-index:200;
-  padding-bottom: env(safe-area-inset-bottom,0px);
   box-shadow: 0 -1px 0 var(--n200), 0 -4px 16px rgba(15,23,42,.07);
   background: var(--surface);
 }
@@ -178,30 +178,27 @@ select, input { font-family:var(--font); }
 .nav-separator {
   width:1px;
   background: var(--n200);
-  align-self: stretch;
-  margin: 10px 0;
+  align-self: flex-start;
+  height: 64px;
+  margin-top: 12px;
 }
 .nav-btn {
-  flex:1; padding:10px 0 8px;
-  min-height:54px;
+  flex:1;
+  padding: 12px 4px calc(10px + var(--safe-bottom));
   display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:4px;
   color: var(--n400);
   transition: color .2s;
   position:relative;
 }
-.nav-btn span { font-size:10px; font-weight:600; }
-.nav-btn svg  { width:22px; height:22px; }
+.nav-btn span { font-size:11px; font-weight:600; }
+.nav-btn svg  { width:26px; height:26px; }
 
 /* 利用者タブ — アクティブ時ネイビー */
 .nav-btn.user-tab.active {
   color: var(--user-primary);
 }
-.nav-btn.user-tab.active::after {
-  content:''; position:absolute;
-  top:0; left:20%; right:20%; height:2px;
-  background:var(--user-primary); border-radius:0 0 2px 2px;
-}
+/* アクティブライン削除 — 参考画像に合わせてクリーンに */
 
 /* 駅員タブ — アクティブ時アンバー */
 .nav-btn.staff-tab { color: var(--n400); background: var(--n50); }
@@ -209,15 +206,10 @@ select, input { font-family:var(--font); }
   color: var(--staff-amber);
   background: rgba(245,158,11,.06);
 }
-.nav-btn.staff-tab.active::after {
-  content:''; position:absolute;
-  top:0; left:10%; right:10%; height:2px;
-  background:var(--staff-amber); border-radius:0 0 2px 2px;
-}
 .nav-staff-label {
   font-size:9px; color:var(--n400);
   background:var(--n100); padding:2px 6px; border-radius:4px;
-  margin-top:2px; letter-spacing:.04em;
+  letter-spacing:.04em;
 }
 .nav-btn.staff-tab.active .nav-staff-label { background:var(--staff-amber-bg); color:var(--staff-amber); }
 
@@ -263,7 +255,7 @@ select, input { font-family:var(--font); }
 
 /* Toast */
 .toast-wrap {
-  position:absolute; bottom:calc(var(--nav-h) + 10px); left:16px; right:16px;
+  position:absolute; bottom:calc(var(--nav-h) + 8px); left:16px; right:16px;
   width:auto; max-width:none; transform:none;
   z-index:600; pointer-events:none;
 }
@@ -288,7 +280,7 @@ select, input { font-family:var(--font); }
 .modal-sheet {
   background:var(--surface); border-radius:var(--r-xl) var(--r-xl) 0 0;
   width:100%; max-width:430px;
-  padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));
+  padding:20px 20px calc(20px + var(--safe-bottom));
   animation:sheetUp .3s cubic-bezier(.16,1,.3,1);
 }
 .modal-sheet.staff-sheet { background:var(--staff-surface); }
@@ -399,12 +391,112 @@ select, input { font-family:var(--font); }
 .pay-check svg { display:none; }
 .pay-row.active .pay-check svg { display:block; }
 
-/* Buy btn area */
-.buy-area { padding:16px 16px 8px; }
+/* Passenger type selector */
+.pax-section { padding:10px 16px 0; }
+/* 人数選択カード */
+.pax-card { padding:16px 20px; }
+.pax-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0;
+}
+.pax-row + .pax-row { border-top:1px solid var(--n100); }
+.pax-row-left { display:flex; align-items:center; gap:10px; }
+.pax-row-icon {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; flex-shrink:0;
+}
+.pax-row-icon.adult-icon { background:var(--user-xlight); }
+.pax-row-icon.child-icon { background:var(--warning-bg); }
+.pax-row-name { font-size:14px; font-weight:700; color:var(--n900); }
+.pax-row-sub { font-size:10px; font-weight:500; color:var(--n400); }
+.pax-row-fare { font-size:12px; color:var(--n500); font-weight:600; margin-top:1px; }
+.pax-badge-child {
+  display:inline-block; background:var(--warning-bg); color:var(--warning);
+  font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px;
+  margin-left:4px; letter-spacing:.03em;
+}
+
+/* Fare display - child indicator */
+.fare-type-badge {
+  display:inline-block; font-size:10px; font-weight:700;
+  padding:2px 8px; border-radius:4px; margin-left:6px;
+  vertical-align:middle;
+}
+.fare-type-badge.adult { background:var(--user-xlight); color:var(--user-primary); }
+.fare-type-badge.child { background:var(--warning-bg); color:var(--warning); }
+
+/* Refund step modal */
+.refund-steps { margin-bottom:16px; }
+.refund-step {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:10px 0;
+}
+.refund-step-num {
+  width:24px; height:24px; border-radius:50%;
+  background:var(--n100); color:var(--n500);
+  font-size:11px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.refund-step.active .refund-step-num { background:var(--user-primary); color:#fff; }
+.refund-step-text { font-size:13px; color:var(--n500); line-height:1.5; }
+.refund-step.active .refund-step-text { color:var(--n800); font-weight:600; }
+
+.refund-fee-row {
+  display:flex; justify-content:space-between; padding:8px 0;
+  font-size:13px; border-bottom:1px solid var(--n100);
+}
+.refund-fee-row:last-child { border-bottom:none; }
+.refund-fee-label { color:var(--n500); }
+.refund-fee-val { font-weight:700; color:var(--n800); font-family:var(--mono); }
+.refund-fee-val.total { font-size:18px; color:var(--success); }
+.refund-fee-val.fee { color:var(--danger); }
+.refund-free-badge {
+  display:inline-block; background:var(--success-bg); color:var(--success);
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px;
+}
+
+/* Cancel success overlay in modal */
+.cancel-success {
+  display:none; text-align:center; padding:20px 0 8px;
+}
+.cancel-success.show { display:block; }
+.cancel-success-icon {
+  width:56px; height:56px; border-radius:50%;
+  background:var(--success-bg);
+  display:inline-flex; align-items:center; justify-content:center;
+  margin-bottom:14px;
+}
+.cancel-success-icon svg { width:28px; height:28px; color:var(--success); }
+.cancel-success-title { font-size:18px; font-weight:700; color:var(--n900); margin-bottom:4px; }
+.cancel-success-sub { font-size:13px; color:var(--n500); line-height:1.6; margin-bottom:16px; }
+.refund-receipt {
+  background:var(--n50); border-radius:var(--r-md);
+  padding:14px 16px; text-align:left;
+  margin-bottom:16px;
+}
+.refund-receipt-title {
+  font-size:10px; font-weight:700; color:var(--n400);
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;
+}
+
+/* Buy btn area — ナビの上に固定 */
+.buy-area {
+  position:sticky; bottom:0; z-index:100;
+  padding:12px 16px calc(var(--nav-h) + 12px);
+  background:linear-gradient(to bottom, rgba(241,245,249,0) 0%, var(--bg) 16px);
+}
 .buy-summary {
-  font-size:13px; color:var(--n500); text-align:center; margin-bottom:12px;
+  font-size:13px; color:var(--n500); text-align:center; margin-bottom:10px;
 }
 .buy-summary strong { color:var(--user-primary); font-weight:700; }
+.buy-area .btn-navy {
+  padding:18px 24px;
+  font-size:17px;
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow-md);
+}
 
 /* ─────────────────────────────────────
    ② TICKET LIST SCREEN
@@ -728,9 +820,10 @@ select, input { font-family:var(--font); }
 ───────────────────────────────────── */
 .phone-shell {
   width: 430px;
-  height: 930px;
+  height: 880px;
   background: #1C1C1E;
-  border-radius: 52px;
+  border-radius: 44px;
+  overflow: hidden; /* 唯一のクリッピング — サブピクセル隙間を排除 */
   position: relative;
   flex-shrink: 0;
   box-shadow:
@@ -760,15 +853,16 @@ select, input { font-family:var(--font); }
   background:#000; border-radius:17px; z-index:10;
 }
 .phone-screen {
-  position:absolute; top:52px; bottom:36px; left:0; right:0;
+  position:absolute; top:48px; bottom:0; left:0; right:0;
   overflow:hidden;
-  border-radius:0 0 44px 44px;
-  background: var(--bg);
+  /* 底部背景をナビと同色にして角丸隙間を解消 */
+  background: var(--surface);
 }
 .phone-home-bar {
-  position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+  position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
   width:134px; height:5px;
   background:rgba(255,255,255,.35); border-radius:3px;
+  z-index:300; /* ナビの上に表示 */
 }
 .app-scroll {
   position:relative;
@@ -777,6 +871,7 @@ select, input { font-family:var(--font); }
   overflow-x:hidden;
   z-index:1;
   -webkit-overflow-scrolling:touch;
+  background: var(--bg); /* コンテンツ領域の背景色 */
 }
 </style>
 </head>
@@ -880,43 +975,58 @@ select, input { font-family:var(--font); }
       </div>
     </div>
 
-    <!-- 運賃 -->
-    <div style="padding:10px 16px 0">
-      <div class="card">
-        <div class="fare-card">
-          <div>
-            <div class="fare-tag">片道運賃</div>
-            <div class="fare-note" id="fare-distance-note">15駅区間</div>
-          </div>
-          <div class="fare-val">
-            <span class="fare-num" id="fare-num">530</span>
-            <span class="fare-yen">円</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 枚数 -->
-    <div class="sec-head"><span class="sec-title">購入枚数</span></div>
+    <!-- 人数・運賃 -->
+    <div class="sec-head"><span class="sec-title">人数・運賃</span></div>
     <div style="padding:0 16px">
-      <div class="card">
-        <div class="qty-row">
-          <div>
-            <div class="qty-left-label">枚数を選択</div>
-            <div class="qty-left-sub">最大5枚まで同時購入可</div>
+      <div class="card pax-card">
+        <!-- おとな行 -->
+        <div class="pax-row">
+          <div class="pax-row-left">
+            <div class="pax-row-icon adult-icon">👤</div>
+            <div>
+              <div class="pax-row-name">おとな</div>
+              <div class="pax-row-sub">中学生以上</div>
+              <div class="pax-row-fare" id="adult-fare-label">片道 550円</div>
+            </div>
           </div>
-          <div class="qty-ctrl" role="group" aria-label="枚数">
-            <button class="qty-btn" onclick="changeQty(-1)" aria-label="1枚減らす">
+          <div class="qty-ctrl" role="group" aria-label="おとな枚数">
+            <button class="qty-btn" onclick="changePaxQty('adult',-1)" aria-label="おとな1枚減らす">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14"/></svg>
             </button>
-            <div class="qty-num" id="qty-num" aria-live="polite">1</div>
-            <button class="qty-btn" onclick="changeQty(1)" aria-label="1枚増やす">
+            <div class="qty-num" id="qty-adult" aria-live="polite">1</div>
+            <button class="qty-btn" onclick="changePaxQty('adult',1)" aria-label="おとな1枚増やす">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             </button>
           </div>
         </div>
-        <div class="qty-total" id="qty-total">合計　530 円（1枚）</div>
+        <!-- こども行 -->
+        <div class="pax-row">
+          <div class="pax-row-left">
+            <div class="pax-row-icon child-icon">👦</div>
+            <div>
+              <div class="pax-row-name">こども</div>
+              <div class="pax-row-sub">小学生（半額）</div>
+              <div class="pax-row-fare" id="child-fare-label">片道 280円</div>
+            </div>
+          </div>
+          <div class="qty-ctrl" role="group" aria-label="こども枚数">
+            <button class="qty-btn" onclick="changePaxQty('child',-1)" aria-label="こども1枚減らす">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14"/></svg>
+            </button>
+            <div class="qty-num" id="qty-child" aria-live="polite">0</div>
+            <button class="qty-btn" onclick="changePaxQty('child',1)" aria-label="こども1枚増やす">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+        </div>
+        <!-- 合計 -->
+        <div class="qty-total" id="qty-total">合計　550 円（おとな1枚）</div>
       </div>
+    </div>
+
+    <!-- 区間運賃メモ -->
+    <div style="padding:6px 16px 0">
+      <div style="font-size:11px; color:var(--n400); text-align:right;" id="fare-distance-note">18.0km区間</div>
     </div>
 
     <!-- お支払い -->
@@ -972,7 +1082,7 @@ select, input { font-family:var(--font); }
 
     <!-- 購入ボタン -->
     <div class="buy-area">
-      <p class="buy-summary" id="buy-summary">新豊橋 → 三河田原　530円 × 1枚　= <strong>530円</strong></p>
+      <p class="buy-summary" id="buy-summary">新豊橋 → 三河田原　550円 × 1枚　= <strong>550円</strong></p>
       <button class="btn btn-navy" id="buy-btn" onclick="purchaseTicket()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>
         乗車券を購入する
@@ -1062,8 +1172,8 @@ select, input { font-family:var(--font); }
       </div>
 
       <div class="ticket-footer">
-        <span class="ticket-footer-label">本日限り有効</span>
-        <span class="ticket-footer-value" id="tk-fare">¥530</span>
+        <span class="ticket-footer-label" id="tk-footer-label">本日限り有効</span>
+        <span class="ticket-footer-value" id="tk-fare">¥550</span>
       </div>
     </div>
 
@@ -1312,20 +1422,100 @@ select, input { font-family:var(--font); }
 <div class="modal-wrap" id="modal-cancel" role="dialog" aria-modal="true" aria-labelledby="mod-cancel-title" onclick="bgClose(event,'modal-cancel')">
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
-    <h2 class="sheet-title" id="mod-cancel-title">キャンセルの確認</h2>
-    <div class="cancel-warn">
-      <p>この操作は取り消すことができません。キャンセル後、乗車券は即座に無効になります。</p>
+
+    <!-- STEP 1: 確認画面 -->
+    <div id="cancel-step-confirm">
+      <h2 class="sheet-title" id="mod-cancel-title">払い戻しの確認</h2>
+      <p class="sheet-sub">キャンセル後、乗車券は即座に無効になります。この操作は取り消せません。</p>
+
+      <div class="refund-steps">
+        <div class="refund-step active">
+          <div class="refund-step-num">1</div>
+          <div class="refund-step-text">払い戻しを申請</div>
+        </div>
+        <div class="refund-step">
+          <div class="refund-step-num">2</div>
+          <div class="refund-step-text">手数料を差し引いて返金処理</div>
+        </div>
+        <div class="refund-step">
+          <div class="refund-step-num">3</div>
+          <div class="refund-step-text">元のお支払い方法へ返金（3〜5営業日）</div>
+        </div>
+      </div>
+
+      <div class="refund-box" style="margin-bottom:16px">
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">対象</span>
+          <span class="refund-fee-val" id="can-info">---</span>
+        </div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">乗車種別</span>
+          <span class="refund-fee-val" id="can-pax-type">おとな</span>
+        </div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">購入金額</span>
+          <span class="refund-fee-val" id="can-original">---</span>
+        </div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">手数料 <span id="can-fee-badge"></span></span>
+          <span class="refund-fee-val fee" id="can-fee">---</span>
+        </div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label" style="font-weight:700;color:var(--n700)">払戻金額</span>
+          <span class="refund-fee-val total" id="can-refund">---</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="closeModal('modal-cancel')" style="flex:1">やめる</button>
+        <button class="btn btn-red" onclick="processCancel()" id="btn-do-cancel" style="flex:1">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+          払い戻す
+        </button>
+      </div>
     </div>
-    <div class="refund-box">
-      <div class="refund-row"><span class="refund-label">対象チケット</span><span class="refund-val" id="can-info">---</span></div>
-      <div class="refund-row"><span class="refund-label">払戻金額</span><span class="refund-val green" id="can-refund">---</span></div>
-      <div class="refund-row"><span class="refund-label">払戻方法</span><span class="refund-val">元のお支払い方法へ返金</span></div>
-      <div class="refund-row"><span class="refund-label">処理期間</span><span class="refund-val">3〜5営業日</span></div>
+
+    <!-- STEP 2: 処理中 -->
+    <div id="cancel-step-processing" style="display:none; text-align:center; padding:30px 0">
+      <div class="spinner" style="margin-bottom:16px"></div>
+      <p style="font-size:15px; font-weight:700; color:var(--n700); margin-bottom:4px;">払い戻し処理中…</p>
+      <p style="font-size:13px; color:var(--n400);">しばらくお待ちください</p>
     </div>
-    <div class="btn-row">
-      <button class="btn btn-ghost" onclick="closeModal('modal-cancel')" style="flex:1">やめる</button>
-      <button class="btn btn-red" onclick="confirmCancel()" style="flex:1">キャンセルする</button>
+
+    <!-- STEP 3: 完了 -->
+    <div class="cancel-success" id="cancel-step-done">
+      <div class="cancel-success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div class="cancel-success-title">払い戻し完了</div>
+      <p class="cancel-success-sub">キャンセルが完了しました。<br>返金は3〜5営業日以内に反映されます。</p>
+
+      <div class="refund-receipt">
+        <div class="refund-receipt-title">払戻明細</div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">対象区間</span>
+          <span class="refund-fee-val" id="done-route">---</span>
+        </div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">払戻金額</span>
+          <span class="refund-fee-val total" id="done-refund">---</span>
+        </div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">返金先</span>
+          <span class="refund-fee-val" id="done-method">---</span>
+        </div>
+        <div class="refund-fee-row">
+          <span class="refund-fee-label">処理番号</span>
+          <span class="refund-fee-val" id="done-ref" style="font-size:11px">---</span>
+        </div>
+      </div>
+
+      <button class="btn btn-navy" onclick="closeCancelDone()" style="width:100%">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+        閉じる
+      </button>
     </div>
+
   </div>
 </div>
 
@@ -1335,15 +1525,52 @@ select, input { font-family:var(--font); }
 <script>
 /* ────────── DATA ────────── */
 const STATIONS = ['新豊橋','柳生橋','小池','愛知大学前','南栄','高師','芦原','植田','向ヶ丘','大清水','老津','杉山','やぐま台','豊島','神戸','三河田原'];
+// 各駅の新豊橋からの営業キロ
+const STATION_KM = [0.0, 1.0, 1.7, 2.5, 3.2, 4.3, 5.3, 6.3, 7.1, 8.5, 10.7, 12.7, 14.0, 15.6, 17.1, 18.0];
+// 運賃表 [上限km, 大人片道運賃] (2024年3月16日改定)
+const FARE_TABLE = [
+  [2,170],[3,180],[4,180],[5,210],[6,230],[7,250],[8,280],
+  [9,310],[10,340],[11,370],[12,400],[13,420],[14,450],[15,480],[16,500],[17,530],[18,550]
+];
 const PAY_LABELS = { apple:'Apple Pay', card:'クレジットカード', cvs:'コンビニ払い' };
 
 let tickets  = [];
 let activeTkt = null;
-let qty = 1;
+let qtyAdult = 1;
+let qtyChild = 0;
 let payMethod = 'apple';
 let raf = null;
 let currentUser = 'A'; // 'A'=送り手, 'B'=受け手
 let xferCode = null;
+
+// こども運賃 = 大人の半額（10円未満切り上げ）
+function calcChildFare(adultFare){ return Math.ceil(adultFare / 2 / 10) * 10; }
+
+// 大人運賃
+function adultFare(f,t){ return calcFare(f,t); }
+// こども運賃
+function childFare(f,t){ const a=calcFare(f,t); return a ? calcChildFare(a) : null; }
+
+function changePaxQty(type, d){
+  if(type==='adult'){
+    qtyAdult = Math.min(5, Math.max(0, qtyAdult + d));
+    document.getElementById('qty-adult').textContent = qtyAdult;
+  } else {
+    qtyChild = Math.min(5, Math.max(0, qtyChild + d));
+    document.getElementById('qty-child').textContent = qtyChild;
+  }
+  updateQtyTotal();
+  updateBuySummary();
+}
+
+// 手数料計算（購入30分以内は無料、それ以降は220円）
+const CANCEL_FEE = 220;
+function calcCancelFee(ticket){
+  const elapsed = (Date.now() - (ticket._purchasedMs||0)) / 60000;
+  return elapsed <= 30 ? 0 : CANCEL_FEE;
+}
+
+/* selectPax は不要 — 人数入力に統合済み */
 
 function pad(n){ return String(n).padStart(2,'0'); }
 function now(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}` }
@@ -1354,15 +1581,18 @@ function code6(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return [...Array(6
 function calcFare(f,t){
   const fi=STATIONS.indexOf(f), ti=STATIONS.indexOf(t);
   if(fi<0||ti<0||fi===ti) return null;
-  const d=Math.abs(fi-ti);
-  return d<=2?180 : d<=4?260 : d<=7?360 : d<=10?440 : 530;
+  const km=Math.abs(STATION_KM[fi]-STATION_KM[ti]);
+  for(const [maxKm,fare] of FARE_TABLE){
+    if(km<=maxKm) return fare;
+  }
+  return 550;
 }
 
 function distLabel(f,t){
   const fi=STATIONS.indexOf(f), ti=STATIONS.indexOf(t);
   if(fi<0||ti<0) return '';
-  const d=Math.abs(fi-ti);
-  return `${d}駅区間`;
+  const km=Math.abs(STATION_KM[fi]-STATION_KM[ti]);
+  return `${km.toFixed(1)}km区間`;
 }
 
 /* ────────── INIT DEMO DATA ────────── */
@@ -1371,21 +1601,27 @@ function distLabel(f,t){
   // Aさん: 有効チケット（2枚グループ）
   const g1 = uid().replace('TKR-','GRP-');
   ['TKR-K2405X9','TKR-K2405XA'].forEach((id,i)=>tickets.push({
-    id, groupId:g1, from:'新豊橋', to:'三河田原', fare:530, qty:2,
+    id, groupId:g1, from:'新豊橋', to:'三河田原', fare:550, qty:2,
+    passengerType:'adult',
     isGroupLead:i===0, issuedAt:td, issuedAtStr:'08:42:17', state:'valid',
     pay:'apple', usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:null, owner:'A',
+    _purchasedMs:Date.now()-600000, // 10分前に購入（手数料無料テスト用）
   }));
-  // Aさん: 使用済みチケット
+  // Aさん: 使用済みチケット（こども料金）
   tickets.push({
-    id:'TKR-Z9Y1W2P', groupId:null, from:'新豊橋', to:'高師', fare:260, qty:1,
+    id:'TKR-Z9Y1W2P', groupId:null, from:'新豊橋', to:'高師', fare:110, qty:1,
+    passengerType:'child',
     isGroupLead:true, issuedAt:td, issuedAtStr:'07:02:44', state:'used',
     pay:'card', usedAt:'07:52:11', cancelledAt:null, xferCode:null, receivedFrom:null, owner:'A',
+    _purchasedMs:Date.now()-7200000,
   });
   // Bさん: 受取チケット（Aさんから譲渡受取済み）
   tickets.push({
-    id:'TKR-R8B3C1D', groupId:null, from:'南栄', to:'大清水', fare:180, qty:1,
+    id:'TKR-R8B3C1D', groupId:null, from:'南栄', to:'大清水', fare:230, qty:1,
+    passengerType:'adult',
     isGroupLead:true, issuedAt:td, issuedAtStr:'07:15:33', state:'received',
     pay:'apple', usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:'Aさん', owner:'B',
+    _purchasedMs:Date.now()-3600000,
   });
 })();
 
@@ -1393,17 +1629,13 @@ function distLabel(f,t){
 function onRouteChange(){
   const f=document.getElementById('from-st').value;
   const t=document.getElementById('to-st').value;
-  const fare=calcFare(f,t);
+  const aFare=adultFare(f,t);
+  const cFare=childFare(f,t);
   const dl=distLabel(f,t);
-  document.getElementById('fare-num').textContent = fare ?? '---';
+  // 運賃ラベル更新
+  document.getElementById('adult-fare-label').textContent = aFare ? `片道 ${aFare.toLocaleString()}円` : '片道 ---円';
+  document.getElementById('child-fare-label').textContent = cFare ? `片道 ${cFare.toLocaleString()}円` : '片道 ---円';
   document.getElementById('fare-distance-note').textContent = (f&&t&&f!==t) ? dl : '区間を選択してください';
-  updateQtyTotal();
-  updateBuySummary();
-}
-
-function changeQty(d){
-  qty=Math.min(5,Math.max(1,qty+d));
-  document.getElementById('qty-num').textContent=qty;
   updateQtyTotal();
   updateBuySummary();
 }
@@ -1411,23 +1643,31 @@ function changeQty(d){
 function updateQtyTotal(){
   const f=document.getElementById('from-st').value;
   const t=document.getElementById('to-st').value;
-  const fare=calcFare(f,t);
+  const aFare=adultFare(f,t);
+  const cFare=childFare(f,t);
   const el=document.getElementById('qty-total');
-  if(fare) el.textContent=`合計　${(fare*qty).toLocaleString()} 円（${qty}枚）`;
-  else el.textContent='合計　--- 円';
+  const totalQty = qtyAdult + qtyChild;
+  if(!aFare || totalQty===0){ el.textContent='合計　--- 円'; return; }
+  const total = (aFare * qtyAdult) + (cFare * qtyChild);
+  const parts=[];
+  if(qtyAdult>0) parts.push(`おとな${qtyAdult}枚`);
+  if(qtyChild>0) parts.push(`こども${qtyChild}枚`);
+  el.textContent=`合計　${total.toLocaleString()} 円（${parts.join(' + ')}）`;
 }
 
 function updateBuySummary(){
   const f=document.getElementById('from-st').value;
   const t=document.getElementById('to-st').value;
-  const fare=calcFare(f,t);
+  const aFare=adultFare(f,t);
+  const cFare=childFare(f,t);
   const el=document.getElementById('buy-summary');
-  if(f&&t&&fare){
-    const total=(fare*qty).toLocaleString();
-    el.innerHTML=`${f} → ${t}　${fare}円 × ${qty}枚　= <strong>${total}円</strong>`;
-  } else {
-    el.innerHTML='乗車区間を選択してください';
-  }
+  const totalQty = qtyAdult + qtyChild;
+  if(!f||!t||!aFare||totalQty===0){ el.innerHTML='人数を選択してください'; return; }
+  const total = (aFare * qtyAdult) + (cFare * qtyChild);
+  const parts=[];
+  if(qtyAdult>0) parts.push(`おとな${aFare}円×${qtyAdult}`);
+  if(qtyChild>0) parts.push(`こども${cFare}円×${qtyChild}`);
+  el.innerHTML=`${f} → ${t}　${parts.join(' + ')}　= <strong>${total.toLocaleString()}円</strong>`;
 }
 
 function selectPay(el,key){
@@ -1440,27 +1680,51 @@ function purchaseTicket(){
   const f=document.getElementById('from-st').value;
   const t=document.getElementById('to-st').value;
   if(!f||!t||f===t){ showToast('乗車駅と降車駅を正しく選択してください','error'); return; }
-  const fare=calcFare(f,t);
+  const totalQty = qtyAdult + qtyChild;
+  if(totalQty===0){ showToast('人数を1名以上選択してください','error'); return; }
+  const aFare=adultFare(f,t);
+  const cFare=childFare(f,t);
   const btn=document.getElementById('buy-btn');
   btn.disabled=true;
   btn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .7s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>処理中...`;
 
   setTimeout(()=>{
-    const gid = qty>1 ? uid().replace('TKR-','GRP-') : null;
+    const gid = totalQty>1 ? uid().replace('TKR-','GRP-') : null;
     const created=[];
-    for(let i=0;i<qty;i++){
+    let idx=0;
+    // おとなチケット生成
+    for(let i=0;i<qtyAdult;i++){
       const tkt={
-        id:uid(), groupId:gid, from:f, to:t, fare, qty,
-        isGroupLead:i===0, issuedAt:todayStr(), issuedAtStr:now(), state:'valid',
+        id:uid(), groupId:gid, from:f, to:t, fare:aFare, qty:totalQty,
+        passengerType:'adult',
+        isGroupLead:idx===0, issuedAt:todayStr(), issuedAtStr:now(), state:'valid',
         pay:payMethod, usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:null, owner:currentUser,
+        _purchasedMs:Date.now(),
       };
-      tickets.push(tkt); created.push(tkt);
+      tickets.push(tkt); created.push(tkt); idx++;
+    }
+    // こどもチケット生成
+    for(let i=0;i<qtyChild;i++){
+      const tkt={
+        id:uid(), groupId:gid, from:f, to:t, fare:cFare, qty:totalQty,
+        passengerType:'child',
+        isGroupLead:idx===0, issuedAt:todayStr(), issuedAtStr:now(), state:'valid',
+        pay:payMethod, usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:null, owner:currentUser,
+        _purchasedMs:Date.now(),
+      };
+      tickets.push(tkt); created.push(tkt); idx++;
     }
     btn.disabled=false;
     btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>乗車券を購入する`;
+    const parts=[];
+    if(qtyAdult>0) parts.push(`おとな${qtyAdult}枚`);
+    if(qtyChild>0) parts.push(`こども${qtyChild}枚`);
     openQR(created[0].id);
-    showToast(`乗車券を${qty}枚購入しました`,'success');
-    qty=1; document.getElementById('qty-num').textContent='1'; updateQtyTotal(); updateBuySummary();
+    showToast(`乗車券を購入しました（${parts.join('・')}）`,'success');
+    qtyAdult=1; qtyChild=0;
+    document.getElementById('qty-adult').textContent='1';
+    document.getElementById('qty-child').textContent='0';
+    updateQtyTotal(); updateBuySummary();
   },900);
 }
 
@@ -1473,6 +1737,7 @@ function openQR(id){
   document.getElementById('tk-from').textContent=t.from;
   document.getElementById('tk-to').textContent=t.to;
   document.getElementById('tk-fare').textContent=`¥${(t.fare*(t.qty||1)).toLocaleString()}`;
+  document.getElementById('tk-footer-label').textContent=t.passengerType==='child'?'こども · 本日限り有効':'本日限り有効';
 
   // Status chip
   const chips={
@@ -1495,6 +1760,7 @@ function openQR(id){
 
   // Tags
   let tags='';
+  if(t.passengerType==='child') tags+=`<span class="chip chip-amber">👦 こども</span>`;
   if(t.qty>1&&t.isGroupLead) tags+=`<span class="chip chip-blue"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${t.qty}枚同時利用</span>`;
   if(t.receivedFrom) tags+=`<span class="chip chip-blue"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v13M6 11l6 6 6-6"/></svg>${t.receivedFrom}さんから</span>`;
   if(t.pay==='cvs') tags+=`<span class="chip chip-amber">コンビニ払い</span>`;
@@ -1588,30 +1854,54 @@ function renderList(){
   };
 
   const sections=[
-    {label:'有効なチケット', states:['valid']},
-    {label:'受取チケット',   states:['received']},
-    {label:'譲渡済み',       states:['transferred']},
-    {label:'使用済み',       states:['used']},
-    {label:'キャンセル済み', states:['cancelled']},
+    {label:'有効なチケット',     filter:t=>t.state==='valid'},
+    {label:'譲渡されたチケット', filter:t=>t.state==='received'},
+    {label:'譲渡したチケット',   filter:t=>t.state==='transferred'},
+    {label:'使用済み',           filter:t=>t.state==='used'},
+    {label:'キャンセル済み',     filter:t=>t.state==='cancelled'},
   ];
+
+  // 譲渡先のアイコン
+  const sectionIcon={
+    '譲渡されたチケット':'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${clr}" stroke-width="2"><path d="M12 3v13M6 11l6 6 6-6"/><path d="M4 20h16" opacity=".5"/></svg>',
+    '譲渡したチケット':'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${clr}" stroke-width="2"><path d="M12 21V8M6 13l6-6 6 6"/><path d="M4 4h16" opacity=".5"/></svg>',
+  };
 
   let html='';
   sections.forEach(sec=>{
-    const list=shown.filter(t=>sec.states.includes(t.state));
+    const list=shown.filter(sec.filter);
     if(!list.length) return;
     html+=`<div class="sec-head"><span class="sec-title">${sec.label}</span><span class="sec-count">${list.length}枚</span></div>
     <div style="padding:0 16px"><div class="card">`;
     list.forEach((t,i)=>{
       const qBadge=t.qty>1?`<span class="chip chip-blue" style="font-size:10px">${t.qty}枚</span>`:'';
+      const childBadge=t.passengerType==='child'?`<span class="chip chip-amber" style="font-size:10px">👦 こども</span>`:'';
       const clickable=t.state!=='transferred';
+      // 譲渡関連の補足情報
+      let xferInfo='';
+      if(t.state==='received' && t.receivedFrom){
+        xferInfo=`<span class="tkt-time">${t.receivedFrom}から受取</span>`;
+      } else if(t.state==='transferred' && t.xferTo){
+        xferInfo=`<span class="tkt-time">${t.xferTo}へ譲渡</span>`;
+      } else if(t.state==='transferred'){
+        xferInfo=`<span class="tkt-time">譲渡コード発行済み</span>`;
+      }
+      // アイコン
+      const useSectionIcon = sectionIcon[sec.label];
+      const ibg=iconBg[t.state];
+      const iclr=iconClr[t.state];
+      const iconSvg = useSectionIcon
+        ? useSectionIcon.replace(/\$\{clr\}/g, iclr)
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${iclr}" stroke-width="2"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>`;
+
       html+=`${i>0?'<div class="divider"></div>':''}
       <div class="tkt-item${clickable?'':' tkt-item--dim'}" ${clickable?`onclick="openQR('${t.id}')" role="button" tabindex="0"`:''}  aria-label="${t.from}から${t.to}への乗車券">
-        <div class="tkt-icon" style="background:${iconBg[t.state]}">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${iconClr[t.state]}" stroke-width="2"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+        <div class="tkt-icon" style="background:${ibg}">
+          ${iconSvg}
         </div>
         <div class="tkt-body">
-          <div class="tkt-route">${t.from}  →  ${t.to} ${qBadge}</div>
-          <div class="tkt-meta">${stateChip[t.state]}<span class="tkt-time">${t.issuedAtStr} 購入</span>${t.receivedFrom?`<span class="tkt-time">${t.receivedFrom}から</span>`:''}</div>
+          <div class="tkt-route">${t.from}  →  ${t.to} ${qBadge} ${childBadge}</div>
+          <div class="tkt-meta">${stateChip[t.state]}<span class="tkt-time">${t.issuedAtStr} 購入</span>${xferInfo}</div>
         </div>
         <div class="tkt-right">
           <div class="tkt-fare">¥${(t.fare*(t.qty||1)).toLocaleString()}</div>
@@ -1691,19 +1981,63 @@ function submitCode(){
   openQR(newTkt.id);
 }
 
-/* ────────── CANCEL ────────── */
+/* ────────── CANCEL / REFUND ────────── */
 function openCancelModal(){
   const t=tickets.find(x=>x.id===activeTkt); if(!t||(t.state!=='valid'&&t.state!=='received')) return;
+  // リセット表示
+  document.getElementById('cancel-step-confirm').style.display='block';
+  document.getElementById('cancel-step-processing').style.display='none';
+  document.getElementById('cancel-step-done').className='cancel-success';
+
+  const totalFare = t.fare * t.qty;
+  const fee = calcCancelFee(t);
+  const refund = Math.max(0, totalFare - fee);
+  const paxLabel = t.passengerType==='child' ? 'こども' : 'おとな';
+
   document.getElementById('can-info').textContent=`${t.from} → ${t.to}（${t.qty}枚）`;
-  document.getElementById('can-refund').textContent=`¥${(t.fare*t.qty).toLocaleString()}`;
+  document.getElementById('can-pax-type').textContent=paxLabel;
+  document.getElementById('can-original').textContent=`¥${totalFare.toLocaleString()}`;
+
+  if(fee===0){
+    document.getElementById('can-fee').textContent='¥0';
+    document.getElementById('can-fee-badge').innerHTML='<span class="refund-free-badge">購入30分以内 無料</span>';
+  } else {
+    document.getElementById('can-fee').textContent=`-¥${fee.toLocaleString()}`;
+    document.getElementById('can-fee-badge').textContent='';
+  }
+  document.getElementById('can-refund').textContent=`¥${refund.toLocaleString()}`;
+
   openModal('modal-cancel');
 }
-function confirmCancel(){
+
+function processCancel(){
   const t=tickets.find(x=>x.id===activeTkt); if(!t) return;
-  const targets=t.groupId ? tickets.filter(x=>x.groupId===t.groupId) : [t];
-  targets.forEach(x=>{ x.state='cancelled'; x.cancelledAt=now(); });
+  // Step 2: 処理中
+  document.getElementById('cancel-step-confirm').style.display='none';
+  document.getElementById('cancel-step-processing').style.display='block';
+
+  setTimeout(()=>{
+    // 実際のキャンセル処理
+    const targets=t.groupId ? tickets.filter(x=>x.groupId===t.groupId) : [t];
+    targets.forEach(x=>{ x.state='cancelled'; x.cancelledAt=now(); });
+
+    const totalFare = t.fare * t.qty;
+    const fee = calcCancelFee(t);
+    const refund = Math.max(0, totalFare - fee);
+
+    // Step 3: 完了
+    document.getElementById('cancel-step-processing').style.display='none';
+    document.getElementById('done-route').textContent=`${t.from} → ${t.to}`;
+    document.getElementById('done-refund').textContent=`¥${refund.toLocaleString()}`;
+    document.getElementById('done-method').textContent=PAY_LABELS[t.pay]||t.pay;
+    document.getElementById('done-ref').textContent=`REF-${Date.now().toString(36).toUpperCase()}`;
+    document.getElementById('cancel-step-done').className='cancel-success show';
+  }, 1200);
+}
+
+function closeCancelDone(){
   closeModal('modal-cancel');
-  showToast('乗車券をキャンセルしました','success');
+  showToast('払い戻しが完了しました','success');
   showScreen('tickets');
 }
 
