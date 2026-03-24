@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>QR Pass — 豊橋鉄道</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;900&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+/* ─────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────── */
+:root {
+  /* 利用者サイド — 豊鉄ネイビー */
+  --user-primary:   #1B3A6B;
+  --user-mid:       #2563EB;
+  --user-light:     #DBEAFE;
+  --user-xlight:    #EFF6FF;
+
+  /* 駅員サイド — アンバー+ダーク */
+  --staff-bg:       #0F172A;
+  --staff-surface:  #1E293B;
+  --staff-border:   #334155;
+  --staff-amber:    #F59E0B;
+  --staff-amber-bg: rgba(245,158,11,0.12);
+
+  /* Semantic */
+  --success:        #059669;
+  --success-bg:     #D1FAE5;
+  --danger:         #DC2626;
+  --danger-bg:      #FEE2E2;
+  --warning:        #D97706;
+  --warning-bg:     #FEF3C7;
+
+  /* Neutral */
+  --n50:   #F8FAFC; --n100: #F1F5F9; --n200: #E2E8F0;
+  --n300:  #CBD5E1; --n400: #94A3B8; --n500: #64748B;
+  --n600:  #475569; --n700: #334155; --n800: #1E293B; --n900: #0F172A;
+
+  /* Surface */
+  --surface: #FFFFFF;
+  --bg:      #F1F5F9;
+
+  /* Geometry */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 18px; --r-xl: 24px;
+  --shadow-sm: 0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.05);
+  --shadow-md: 0 4px 12px rgba(15,23,42,.10), 0 2px 4px rgba(15,23,42,.06);
+  --shadow-lg: 0 12px 32px rgba(15,23,42,.14), 0 4px 8px rgba(15,23,42,.07);
+
+  /* Type */
+  --font:  "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+  --mono:  "Inter", "SF Mono", monospace;
+
+  /* Layout */
+  --header-h: 56px;
+  --role-h:   36px;
+  --nav-h:    calc(64px + env(safe-area-inset-bottom,0px));
+  --phone-screen-h: 842px;
+}
+
+/* ─────────────────────────────────────
+   BASE
+───────────────────────────────────── */
+*, *::before, *::after {
+  margin:0; padding:0; box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+html { font-size:16px; }
+body {
+  font-family: var(--font);
+  background: #FFFFFF;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px 80px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family:var(--font); cursor:pointer; border:none; background:none; }
+select, input { font-family:var(--font); }
+
+/* ─────────────────────────────────────
+   ROLE BANNER  (利用者 / 駅員)
+───────────────────────────────────── */
+.role-banner {
+  height: var(--role-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  position: sticky;
+  top: 0;
+  z-index: 300;
+  transition: background .3s, color .3s;
+}
+.role-banner.user-mode {
+  background: var(--user-xlight);
+  color: var(--user-primary);
+  border-bottom: 1.5px solid var(--user-light);
+}
+.role-banner.staff-mode {
+  background: var(--staff-amber-bg);
+  color: var(--staff-amber);
+  border-bottom: 1.5px solid rgba(245,158,11,.25);
+}
+.role-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────
+   HEADER
+───────────────────────────────────── */
+.header {
+  height: var(--header-h);
+  padding: 0 16px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky;
+  top: var(--role-h);
+  z-index: 200;
+  transition: background .3s, box-shadow .3s;
+}
+.header.user-mode  { background: var(--user-primary); box-shadow: 0 2px 8px rgba(15,23,42,.25); }
+.header.staff-mode { background: var(--staff-surface); box-shadow: 0 2px 8px rgba(0,0,0,.35); border-bottom: 1px solid var(--staff-border); }
+
+.header-logo {
+  width:36px; height:36px; border-radius:var(--r-sm);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  transition: background .3s;
+}
+.header.user-mode  .header-logo { background:#fff; }
+.header.staff-mode .header-logo { background: var(--staff-amber); }
+
+.header-logo svg { width:20px; height:20px; }
+
+.header-titles h1 { font-size:16px; font-weight:700; color:#fff; }
+.header-titles p  { font-size:11px; color:rgba(255,255,255,.6); margin-top:1px; }
+
+.header-badge {
+  margin-left:auto;
+  font-size:10px; font-weight:700;
+  padding:4px 10px; border-radius:6px;
+  letter-spacing:.05em;
+}
+.header.user-mode  .header-badge { background:rgba(255,255,255,.15); color:#fff; }
+.header.staff-mode .header-badge { background:var(--staff-amber); color:#000; }
+
+/* ─────────────────────────────────────
+   SCREENS
+───────────────────────────────────── */
+.screen {
+  display:none;
+  min-height: calc(var(--phone-screen-h) - var(--role-h) - var(--header-h) - var(--nav-h));
+  padding-bottom: var(--nav-h);
+}
+.screen.active { display:block; }
+
+/* ─────────────────────────────────────
+   BOTTOM NAV
+───────────────────────────────────── */
+.bottom-nav {
+  position:absolute; bottom:0; left:0; right:0;
+  width:100%; max-width:none; transform:none;
+  display:flex; z-index:200;
+  padding-bottom: env(safe-area-inset-bottom,0px);
+  box-shadow: 0 -1px 0 var(--n200), 0 -4px 16px rgba(15,23,42,.07);
+  background: var(--surface);
+}
+/* Vertical separator before staff tab */
+.nav-separator {
+  width:1px;
+  background: var(--n200);
+  align-self: stretch;
+  margin: 10px 0;
+}
+.nav-btn {
+  flex:1; padding:10px 0 8px;
+  min-height:54px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:4px;
+  color: var(--n400);
+  transition: color .2s;
+  position:relative;
+}
+.nav-btn span { font-size:10px; font-weight:600; }
+.nav-btn svg  { width:22px; height:22px; }
+
+/* 利用者タブ — アクティブ時ネイビー */
+.nav-btn.user-tab.active {
+  color: var(--user-primary);
+}
+.nav-btn.user-tab.active::after {
+  content:''; position:absolute;
+  top:0; left:20%; right:20%; height:2px;
+  background:var(--user-primary); border-radius:0 0 2px 2px;
+}
+
+/* 駅員タブ — アクティブ時アンバー */
+.nav-btn.staff-tab { color: var(--n400); background: var(--n50); }
+.nav-btn.staff-tab.active {
+  color: var(--staff-amber);
+  background: rgba(245,158,11,.06);
+}
+.nav-btn.staff-tab.active::after {
+  content:''; position:absolute;
+  top:0; left:10%; right:10%; height:2px;
+  background:var(--staff-amber); border-radius:0 0 2px 2px;
+}
+.nav-staff-label {
+  font-size:9px; color:var(--n400);
+  background:var(--n100); padding:2px 6px; border-radius:4px;
+  margin-top:2px; letter-spacing:.04em;
+}
+.nav-btn.staff-tab.active .nav-staff-label { background:var(--staff-amber-bg); color:var(--staff-amber); }
+
+/* ─────────────────────────────────────
+   SHARED COMPONENTS
+───────────────────────────────────── */
+.sec-head {
+  padding:20px 16px 8px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.sec-title { font-size:12px; font-weight:700; color:var(--n500); text-transform:uppercase; letter-spacing:.06em; }
+.sec-count  { font-size:12px; color:var(--n400); }
+
+.card { background:var(--surface); border-radius:var(--r-lg); box-shadow:var(--shadow-sm); overflow:hidden; }
+.divider { height:1px; background:var(--n100); }
+
+.chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+.chip-green  { background:var(--success-bg); color:var(--success); }
+.chip-red    { background:var(--danger-bg);  color:var(--danger); }
+.chip-amber  { background:var(--warning-bg); color:var(--warning); }
+.chip-gray   { background:var(--n100);        color:var(--n500); }
+.chip-blue   { background:var(--user-light);  color:var(--user-primary); }
+.dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.dot.pulse { animation:pulse 1.6s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
+
+/* Buttons */
+.btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:15px 20px; border-radius:var(--r-md);
+  font-size:15px; font-weight:700;
+  transition: all .18s;
+}
+.btn:active { transform:scale(.97); }
+.btn-navy   { background:var(--user-primary); color:#fff; width:100%; }
+.btn-navy:active { background:var(--user-mid); }
+.btn-ghost  { background:var(--n100); color:var(--n700); }
+.btn-red    { background:var(--danger-bg); color:var(--danger); }
+.btn-green  { background:var(--success-bg); color:var(--success); }
+.btn-amber  { background:var(--staff-amber); color:#000; }
+.btn:disabled { opacity:.38; cursor:not-allowed; transform:none !important; }
+.btn-row    { display:flex; gap:10px; }
+
+/* Toast */
+.toast-wrap {
+  position:absolute; bottom:calc(var(--nav-h) + 10px); left:16px; right:16px;
+  width:auto; max-width:none; transform:none;
+  z-index:600; pointer-events:none;
+}
+.toast {
+  padding:13px 16px; border-radius:var(--r-md); font-size:14px; font-weight:500;
+  box-shadow:var(--shadow-lg); display:none; align-items:center; gap:10px;
+  animation:toastIn .25s ease;
+}
+.toast.show    { display:flex; }
+.toast-default { background:var(--n800); color:#fff; }
+.toast-success { background:var(--success); color:#fff; }
+.toast-error   { background:var(--danger);  color:#fff; }
+@keyframes toastIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+/* Modal */
+.modal-wrap {
+  position:absolute; inset:0;
+  background:rgba(15,23,42,.55); backdrop-filter:blur(5px);
+  z-index:400; display:none; align-items:flex-end; justify-content:center;
+}
+.modal-wrap.show { display:flex; }
+.modal-sheet {
+  background:var(--surface); border-radius:var(--r-xl) var(--r-xl) 0 0;
+  width:100%; max-width:430px;
+  padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));
+  animation:sheetUp .3s cubic-bezier(.16,1,.3,1);
+}
+.modal-sheet.staff-sheet { background:var(--staff-surface); }
+@keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.sheet-handle { width:36px; height:4px; background:var(--n200); border-radius:2px; margin:0 auto 18px; }
+.sheet-handle.dark { background:var(--staff-border); }
+.sheet-title { font-size:18px; font-weight:700; color:var(--n900); margin-bottom:4px; }
+.sheet-title.white { color:#fff; }
+.sheet-sub   { font-size:13px; color:var(--n500); line-height:1.6; margin-bottom:18px; }
+.sheet-sub.gray { color:var(--n400); }
+
+/* Selects */
+.sel-wrap { position:relative; }
+.sel-wrap select {
+  width:100%; padding:14px 44px 14px 16px;
+  border:1.5px solid var(--n200); border-radius:var(--r-md);
+  background:var(--n50); font-size:16px; color:var(--n900);
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  transition:border-color .2s;
+}
+.sel-wrap select:focus { outline:none; border-color:var(--user-primary); box-shadow:0 0 0 3px rgba(27,58,107,.1); }
+.sel-wrap select option[value=""] { color:var(--n400); }
+.sel-arrow { position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--n400); }
+
+/* ─────────────────────────────────────
+   ① PURCHASE SCREEN
+───────────────────────────────────── */
+.purchase-scroll { padding:0 0 8px; }
+
+/* Receive CTA */
+.receive-banner {
+  margin:12px 16px;
+  background:linear-gradient(135deg, var(--user-primary), var(--user-mid));
+  border-radius:var(--r-lg); padding:16px;
+  display:flex; align-items:center; gap:14px; cursor:pointer;
+  transition:opacity .2s;
+}
+.receive-banner:active { opacity:.85; }
+.receive-banner-icon {
+  width:42px; height:42px; border-radius:var(--r-sm);
+  background:rgba(255,255,255,.15);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.receive-banner-icon svg { width:20px; height:20px; }
+.receive-banner-title { font-size:14px; font-weight:700; color:#fff; }
+.receive-banner-sub   { font-size:12px; color:rgba(255,255,255,.65); margin-top:2px; }
+
+/* Route card */
+.route-card { padding:18px 20px; }
+.route-row { display:flex; align-items:center; gap:14px; }
+.route-node {
+  width:14px; height:14px; border-radius:50%;
+  border:2.5px solid var(--user-primary); background:#fff; flex-shrink:0;
+}
+.route-node.filled { background:var(--user-primary); }
+.route-pipe {
+  width:2px; height:32px; background:var(--n200);
+  margin:4px 0 4px 6px;
+}
+.route-mid-label {
+  font-size:11px; color:var(--n400);
+  padding:6px 0 6px 14px;
+}
+
+/* Fare display */
+.fare-card { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; }
+.fare-tag  { font-size:13px; color:var(--n500); font-weight:500; }
+.fare-val  { display:flex; align-items:baseline; gap:4px; }
+.fare-num  { font-family:var(--mono); font-size:30px; font-weight:900; color:var(--user-primary); transition:all .2s; }
+.fare-yen  { font-size:14px; color:var(--n500); }
+.fare-note { font-size:11px; color:var(--n400); margin-top:2px; }
+
+/* Qty */
+.qty-row { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; }
+.qty-left-label { font-size:14px; font-weight:600; color:var(--n700); }
+.qty-left-sub   { font-size:12px; color:var(--n400); margin-top:2px; }
+.qty-ctrl { display:flex; align-items:center; border:1.5px solid var(--n200); border-radius:var(--r-md); overflow:hidden; }
+.qty-btn  {
+  width:44px; height:44px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--n600); background:var(--n50); transition:background .15s;
+}
+.qty-btn:active { background:var(--n200); }
+.qty-num  {
+  font-family:var(--mono); font-size:17px; font-weight:700;
+  padding:0 16px; min-width:52px; text-align:center;
+  border-left:1.5px solid var(--n200); border-right:1.5px solid var(--n200);
+}
+.qty-total { font-size:12px; color:var(--n400); padding:0 20px 14px; text-align:right; }
+
+/* Payment */
+.pay-row {
+  display:flex; align-items:center; gap:14px;
+  padding:15px 20px; cursor:pointer; transition:background .15s;
+}
+.pay-row:active { background:var(--n50); }
+.pay-icon { width:44px; height:44px; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pay-body { flex:1; }
+.pay-name { font-size:14px; font-weight:600; }
+.pay-sub  { font-size:12px; color:var(--n400); margin-top:2px; }
+.pay-check {
+  width:22px; height:22px; border-radius:50%;
+  border:2px solid var(--n200);
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s; flex-shrink:0;
+}
+.pay-row.active .pay-check { background:var(--user-primary); border-color:var(--user-primary); }
+.pay-check svg { display:none; }
+.pay-row.active .pay-check svg { display:block; }
+
+/* Buy btn area */
+.buy-area { padding:16px 16px 8px; }
+.buy-summary {
+  font-size:13px; color:var(--n500); text-align:center; margin-bottom:12px;
+}
+.buy-summary strong { color:var(--user-primary); font-weight:700; }
+
+/* ─────────────────────────────────────
+   ② TICKET LIST SCREEN
+───────────────────────────────────── */
+.tkt-item {
+  display:flex; align-items:center; gap:14px;
+  padding:15px 20px; cursor:pointer; transition:background .15s;
+}
+.tkt-item:active { background:var(--n50); }
+.tkt-item--dim { cursor:default; opacity:.55; }
+.tkt-icon { width:44px; height:44px; border-radius:var(--r-md); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.tkt-body  { flex:1; min-width:0; }
+.tkt-route { font-size:15px; font-weight:700; }
+.tkt-meta  { display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap; }
+.tkt-time  { font-size:11px; color:var(--n400); font-family:var(--mono); }
+.tkt-right { text-align:right; flex-shrink:0; }
+.tkt-fare  { font-family:var(--mono); font-size:15px; font-weight:700; color:var(--user-primary); }
+.tkt-chevron { color:var(--n300); display:flex; justify-content:flex-end; margin-top:4px; }
+
+.empty-wrap { padding:56px 20px; text-align:center; }
+.empty-wrap svg { width:48px; height:48px; color:var(--n300); margin-bottom:12px; }
+.empty-title { font-size:15px; font-weight:600; color:var(--n400); }
+.empty-sub   { font-size:13px; color:var(--n300); margin-top:4px; }
+
+/* ─────────────────────────────────────
+   ③ QR DETAIL SCREEN
+───────────────────────────────────── */
+.qr-wrap {
+  min-height: calc(var(--phone-screen-h) - var(--role-h) - var(--header-h));
+  display:flex; flex-direction:column; align-items:center;
+  padding:20px 16px var(--nav-h); position:relative;
+  /* overflow:hidden を外す → ボタンがクリップされて押せなくなるため */
+}
+.qr-canvas-bg {
+  position:absolute; inset:0; z-index:0;
+  transition:background 1s ease;
+}
+
+.ticket-card {
+  position:relative; z-index:1;
+  background:rgba(255,255,255,.97);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  border-radius:var(--r-xl);
+  width:100%; max-width:320px;
+  box-shadow:var(--shadow-lg);
+  overflow:hidden;
+}
+/* Top accent line */
+.ticket-card::before {
+  content:''; display:block; height:4px;
+  background:linear-gradient(90deg, var(--user-primary), var(--user-mid));
+}
+
+.ticket-inner { padding:20px 20px 16px; text-align:center; }
+.ticket-id    { font-family:var(--mono); font-size:10px; color:var(--n400); letter-spacing:.1em; margin-bottom:10px; }
+.ticket-chip  { margin-bottom:12px; }
+
+.ticket-route { margin:10px 0 14px; }
+.ticket-from  { font-size:20px; font-weight:900; color:var(--user-primary); }
+.ticket-to    { font-size:20px; font-weight:900; color:var(--user-primary); }
+.ticket-arrow-row {
+  display:flex; align-items:center; gap:8px;
+  color:var(--n300); font-size:12px; margin:6px 0;
+}
+.ticket-arrow-row span { flex:1; height:1px; background:var(--n200); }
+
+.ticket-qr-wrap {
+  background:#fff; border:1.5px solid var(--n200);
+  border-radius:var(--r-md); padding:10px;
+  display:inline-block; margin:0 auto 12px;
+  position:relative;
+}
+#qr-canvas { display:block; width:164px; height:164px; }
+
+/* Used overlay */
+.qr-used-overlay {
+  position:absolute; inset:0; border-radius:var(--r-md);
+  background:rgba(15,23,42,.72); backdrop-filter:blur(6px);
+  display:none; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+}
+.qr-used-overlay.show { display:flex; }
+.qr-used-overlay svg { width:40px; height:40px; color:var(--danger); }
+.qr-used-overlay p { font-size:15px; font-weight:700; color:#fff; }
+.qr-used-overlay small { font-size:11px; color:rgba(255,255,255,.6); }
+
+.ticket-clock {
+  font-family:var(--mono);
+  font-size:26px; font-weight:900; color:var(--user-primary);
+  letter-spacing:-.02em;
+}
+.ticket-clock-ms  { font-family:var(--mono); font-size:15px; color:var(--user-mid); opacity:.8; }
+.ticket-date      { font-size:11px; color:var(--n400); margin-bottom:10px; }
+
+.ticket-tags { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+
+/* 受取チケットバナー */
+.received-from-banner {
+  display:flex; align-items:center; gap:10px;
+  background:rgba(37,99,235,.08); border:1.5px solid rgba(37,99,235,.2);
+  border-radius:var(--r-md); padding:10px 14px; margin:0 0 14px; text-align:left;
+}
+.rfb-icon {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--user-light);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.rfb-icon svg { width:17px; height:17px; stroke:var(--user-primary); }
+.rfb-label { font-size:10px; color:var(--n400); font-weight:700; letter-spacing:.06em; display:block; text-transform:uppercase; }
+.rfb-name  { font-size:14px; font-weight:700; color:var(--user-primary); margin-top:2px; display:block; }
+
+.ticket-footer {
+  padding:12px 20px;
+  border-top:1px solid var(--n100);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ticket-footer-label { font-size:11px; color:var(--n400); }
+.ticket-footer-value { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--n700); }
+
+.qr-actions-row {
+  position:relative; z-index:1;
+  display:flex; gap:10px; width:100%; max-width:320px; margin-top:14px;
+}
+.qr-hint {
+  position:relative; z-index:1;
+  margin-top:12px; font-size:11px;
+  color:rgba(255,255,255,.45); text-align:center; line-height:1.6;
+}
+
+/* ─────────────────────────────────────
+   ④ STAFF SCAN SCREEN
+───────────────────────────────────── */
+.staff-screen {
+  background:var(--staff-bg);
+  min-height: calc(100dvh - var(--role-h) - var(--header-h));
+}
+.staff-inner { padding:20px 16px var(--nav-h); }
+
+/* Viewfinder */
+.viewfinder-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:20px; }
+.viewfinder {
+  width:240px; height:240px;
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:12px;
+}
+.vf-bg {
+  position:absolute; inset:0;
+  border:1.5px solid rgba(255,255,255,.1); border-radius:var(--r-lg);
+}
+.vf-corner {
+  position:absolute; width:28px; height:28px;
+  border-style:solid; border-color:var(--staff-amber);
+}
+.vf-corner.tl { top:-1px; left:-1px;   border-width:3px 0 0 3px; border-radius:8px 0 0 0; }
+.vf-corner.tr { top:-1px; right:-1px;  border-width:3px 3px 0 0; border-radius:0 8px 0 0; }
+.vf-corner.bl { bottom:-1px; left:-1px;  border-width:0 0 3px 3px; border-radius:0 0 0 8px; }
+.vf-corner.br { bottom:-1px; right:-1px; border-width:0 3px 3px 0; border-radius:0 0 8px 0; }
+.vf-scan-line {
+  position:absolute; left:5%; right:5%; height:2px;
+  background:linear-gradient(90deg, transparent, var(--staff-amber), transparent);
+  box-shadow:0 0 8px var(--staff-amber);
+  animation:scanMove 2.2s ease-in-out infinite;
+}
+@keyframes scanMove { 0%,100%{top:8%} 50%{top:86%} }
+.vf-center-icon { color:rgba(255,255,255,.15); }
+.viewfinder-hint { font-size:12px; color:rgba(255,255,255,.4); text-align:center; }
+
+/* Demo trigger button */
+.demo-trigger {
+  display:flex; gap:10px; margin-bottom:20px;
+}
+.demo-btn-v {
+  flex:1; padding:13px 10px;
+  border-radius:var(--r-md);
+  font-size:13px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  transition:all .18s;
+}
+.demo-btn-v:active { transform:scale(.97); }
+.demo-btn-valid    { background:rgba(245,158,11,.15); color:var(--staff-amber); border:1.5px solid rgba(245,158,11,.3); }
+.demo-btn-used     { background:rgba(255,255,255,.05); color:rgba(255,255,255,.45); border:1.5px solid rgba(255,255,255,.1); }
+
+/* Result card */
+.result-card {
+  background:var(--staff-surface); border-radius:var(--r-lg);
+  border:1px solid var(--staff-border);
+  margin-bottom:14px; display:none;
+  animation:fadeUp .25s ease;
+}
+.result-card.show { display:block; }
+@keyframes fadeUp { from{transform:translateY(8px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+/* Result header */
+.result-head {
+  padding:18px 20px 16px;
+  display:flex; align-items:center; gap:14px;
+  border-bottom:1px solid var(--staff-border);
+}
+.result-icon {
+  width:52px; height:52px; border-radius:var(--r-md);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.result-icon svg { width:26px; height:26px; }
+.result-status-label { font-size:18px; font-weight:900; }
+.result-status-sub   { font-size:12px; color:rgba(255,255,255,.5); margin-top:3px; }
+
+/* Result rows */
+.result-rows { padding:0 20px; }
+.result-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 0; border-bottom:1px solid var(--staff-border);
+}
+.result-row:last-child { border-bottom:none; }
+.result-label { font-size:13px; color:rgba(255,255,255,.5); }
+.result-value { font-size:13px; font-weight:600; color:#fff; font-family:var(--mono); text-align:right; }
+.result-value.large { font-size:16px; }
+.result-value.green { color:var(--success); }
+.result-value.red   { color:var(--danger); }
+.result-value.amber { color:var(--staff-amber); }
+
+/* Validation badges */
+.validation-row {
+  padding:14px 20px;
+  display:flex; gap:8px; flex-wrap:wrap;
+  border-top:1px solid var(--staff-border);
+}
+.vbadge {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:6px; padding:5px 10px;
+  font-size:11px; color:rgba(255,255,255,.6); font-weight:600;
+}
+.vbadge.ok  { background:rgba(5,150,105,.12); border-color:rgba(5,150,105,.3); color:#34d399; }
+.vbadge svg { width:12px; height:12px; }
+
+/* Staff action buttons */
+.staff-actions { padding:16px 20px; border-top:1px solid var(--staff-border); display:flex; gap:10px; }
+
+/* ─────────────────────────────────────
+   MODALS — TRANSFER
+───────────────────────────────────── */
+.transfer-code-box {
+  background:var(--n50); border:1.5px solid var(--n200);
+  border-radius:var(--r-md); padding:20px; text-align:center; margin-bottom:16px;
+}
+.transfer-code-heading { font-size:11px; color:var(--n400); font-weight:600; letter-spacing:.06em; margin-bottom:8px; }
+.transfer-code-num {
+  font-family:var(--mono); font-size:38px; font-weight:900;
+  letter-spacing:.18em; color:var(--user-primary);
+}
+.transfer-code-exp { font-size:12px; color:var(--n400); margin-top:6px; }
+
+.code-input {
+  width:100%; padding:16px; text-align:center;
+  border:2px solid var(--n200); border-radius:var(--r-md);
+  font-size:28px; font-weight:700; font-family:var(--mono);
+  letter-spacing:.2em; color:var(--user-primary); text-transform:uppercase;
+  background:var(--n50); transition:border-color .2s;
+}
+.code-input:focus { outline:none; border-color:var(--user-primary); background:#fff; }
+.code-input::placeholder { color:var(--n300); letter-spacing:.1em; }
+
+/* Cancel */
+.cancel-warn {
+  background:var(--danger-bg); border-radius:var(--r-md);
+  padding:14px 16px; margin-bottom:14px;
+}
+.cancel-warn p { font-size:13px; color:var(--danger); line-height:1.6; }
+.refund-box { background:var(--n50); border-radius:var(--r-md); padding:14px 16px; margin-bottom:16px; }
+.refund-row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; }
+.refund-label { color:var(--n500); }
+.refund-val   { font-weight:700; color:var(--n800); }
+.refund-val.green { color:var(--success); }
+
+/* Error box */
+.err-box { display:none; background:var(--danger-bg); border-radius:var(--r-sm); padding:10px 14px; margin-bottom:12px; font-size:13px; color:var(--danger); }
+
+/* ─────────────────────────────────────
+   DEMO SWITCHER
+───────────────────────────────────── */
+.demo-switcher-panel {
+  margin: 14px 16px 4px;
+  background: var(--n50);
+  border: 1.5px solid var(--n200);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dsp-header { display:flex; align-items:center; gap:8px; }
+.dsp-badge  {
+  font-size:9px; font-weight:800; letter-spacing:.08em;
+  background:var(--staff-amber); color:#000;
+  padding:2px 8px; border-radius:4px;
+}
+.dsp-label  { font-size:12px; color:var(--n500); font-weight:600; flex:1; }
+.dsp-toggle {
+  display:flex; background:var(--n200); border-radius:var(--r-md);
+  padding:3px; gap:3px;
+}
+.dsp-btn {
+  flex:1; padding:8px 6px; border-radius:8px;
+  font-size:12px; font-weight:700; color:var(--n500);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition: all .2s; position:relative;
+}
+.dsp-btn.active { background:var(--surface); color:var(--n900); box-shadow:var(--shadow-sm); }
+.dsp-btn svg { width:14px; height:14px; flex-shrink:0; }
+.dsp-role { font-size:10px; font-weight:500; opacity:.65; }
+.dsp-new-dot {
+  position:absolute; top:4px; right:4px;
+  width:7px; height:7px; border-radius:50%;
+  background:var(--danger); display:none;
+}
+.dsp-new-dot.show { display:block; }
+
+/* ─────────────────────────────────────
+   PHONE MOCKUP FRAME
+───────────────────────────────────── */
+.phone-shell {
+  width: 430px;
+  height: 930px;
+  background: #1C1C1E;
+  border-radius: 52px;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.12),
+    0 0 0 2.5px #080808,
+    0 40px 80px rgba(0,0,0,.22),
+    0 12px 30px rgba(0,0,0,.14);
+}
+/* 左: ボリュームボタン (上下2個) */
+.phone-shell::before {
+  content:'';
+  position:absolute; left:-4px; top:148px;
+  width:4px; height:32px;
+  background:#2C2C2E; border-radius:2px 0 0 2px;
+  box-shadow: 0 50px 0 #2C2C2E, 0 94px 0 #2C2C2E;
+}
+/* 右: 電源ボタン */
+.phone-shell::after {
+  content:'';
+  position:absolute; right:-4px; top:180px;
+  width:4px; height:68px;
+  background:#2C2C2E; border-radius:0 2px 2px 0;
+}
+.phone-dynamic-island {
+  position:absolute; top:14px; left:50%; transform:translateX(-50%);
+  width:118px; height:34px;
+  background:#000; border-radius:17px; z-index:10;
+}
+.phone-screen {
+  position:absolute; top:52px; bottom:36px; left:0; right:0;
+  overflow:hidden;
+  border-radius:0 0 44px 44px;
+  background: var(--bg);
+}
+.phone-home-bar {
+  position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+  width:134px; height:5px;
+  background:rgba(255,255,255,.35); border-radius:3px;
+}
+.app-scroll {
+  position:relative;
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  z-index:1;
+  -webkit-overflow-scrolling:touch;
+}
+</style>
+</head>
+<body>
+
+<div class="phone-shell">
+  <div class="phone-dynamic-island"></div>
+  <div class="phone-screen" id="phone-screen">
+    <!-- QR背景グラデーション (phone-screen 直下) -->
+    <div class="qr-canvas-bg" id="qr-bg" aria-hidden="true"></div>
+
+    <!-- スクロール可能アプリ領域 -->
+    <div class="app-scroll" id="app-scroll">
+
+<!-- ═══════════════════ ROLE BANNER ═══════════════════ -->
+<div class="role-banner user-mode" id="role-banner" aria-live="polite">
+  <span class="role-dot"></span>
+  <span id="role-label">利用者画面</span>
+</div>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="header user-mode" id="main-header" role="banner">
+  <div class="header-logo" aria-hidden="true">
+    <!-- 豊鉄スタイル ロゴ -->
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7h18M3 17h18" stroke="currentColor"/>
+      <rect x="4" y="4" width="16" height="16" rx="2.5" stroke="currentColor"/>
+      <circle cx="8" cy="12" r="1.2" fill="currentColor"/>
+      <circle cx="16" cy="12" r="1.2" fill="currentColor"/>
+    </svg>
+  </div>
+  <div class="header-titles">
+    <h1 id="header-title">QR Pass</h1>
+    <p id="header-sub">豊橋鉄道デジタル乗車券</p>
+  </div>
+  <span class="header-badge" id="header-badge">DEMO</span>
+</header>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 1 — 購入
+══════════════════════════════════════════════ -->
+<main class="screen active" id="screen-purchase" aria-label="乗車券購入">
+  <div class="purchase-scroll">
+
+    <!-- 譲渡受取バナー -->
+    <div class="receive-banner" onclick="openReceiveModal()" role="button" tabindex="0" aria-label="譲渡チケットを受取る">
+      <div class="receive-banner-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 3v13M6 11l6 6 6-6"/>
+          <path d="M4 20h16" opacity=".5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="receive-banner-title">譲渡チケットを受取る</div>
+        <div class="receive-banner-sub">保護者から受取コードをもらった方はこちら</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- 乗車区間 -->
+    <div class="sec-head"><span class="sec-title">乗車区間</span></div>
+    <div style="padding:0 16px">
+      <div class="card route-card">
+        <div class="route-row">
+          <div class="route-node filled" aria-hidden="true"></div>
+          <div class="sel-wrap" style="flex:1">
+            <select id="from-st" aria-label="乗車駅" onchange="onRouteChange()">
+              <option value="">乗車駅を選択してください</option>
+              <option selected>新豊橋</option>
+              <option>柳生橋</option><option>小池</option><option>愛知大学前</option>
+              <option>南栄</option><option>高師</option><option>芦原</option>
+              <option>植田</option><option>向ヶ丘</option><option>大清水</option>
+              <option>老津</option><option>杉山</option><option>やぐま台</option>
+              <option>豊島</option><option>神戸</option><option>三河田原</option>
+            </select>
+            <span class="sel-arrow" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10z"/></svg>
+            </span>
+          </div>
+        </div>
+        <div class="route-pipe" style="margin-left:6px"></div>
+        <div class="route-mid-label">渥美線</div>
+        <div class="route-pipe" style="margin-left:6px"></div>
+        <div class="route-row">
+          <div class="route-node" aria-hidden="true"></div>
+          <div class="sel-wrap" style="flex:1">
+            <select id="to-st" aria-label="降車駅" onchange="onRouteChange()">
+              <option value="">降車駅を選択してください</option>
+              <option>新豊橋</option><option>柳生橋</option><option>小池</option>
+              <option>愛知大学前</option><option>南栄</option><option>高師</option>
+              <option>芦原</option><option>植田</option><option>向ヶ丘</option>
+              <option>大清水</option><option>老津</option><option>杉山</option>
+              <option>やぐま台</option><option>豊島</option><option>神戸</option>
+              <option selected>三河田原</option>
+            </select>
+            <span class="sel-arrow" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8L1 3h10z"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 運賃 -->
+    <div style="padding:10px 16px 0">
+      <div class="card">
+        <div class="fare-card">
+          <div>
+            <div class="fare-tag">片道運賃</div>
+            <div class="fare-note" id="fare-distance-note">15駅区間</div>
+          </div>
+          <div class="fare-val">
+            <span class="fare-num" id="fare-num">530</span>
+            <span class="fare-yen">円</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 枚数 -->
+    <div class="sec-head"><span class="sec-title">購入枚数</span></div>
+    <div style="padding:0 16px">
+      <div class="card">
+        <div class="qty-row">
+          <div>
+            <div class="qty-left-label">枚数を選択</div>
+            <div class="qty-left-sub">最大5枚まで同時購入可</div>
+          </div>
+          <div class="qty-ctrl" role="group" aria-label="枚数">
+            <button class="qty-btn" onclick="changeQty(-1)" aria-label="1枚減らす">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14"/></svg>
+            </button>
+            <div class="qty-num" id="qty-num" aria-live="polite">1</div>
+            <button class="qty-btn" onclick="changeQty(1)" aria-label="1枚増やす">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="qty-total" id="qty-total">合計　530 円（1枚）</div>
+      </div>
+    </div>
+
+    <!-- お支払い -->
+    <div class="sec-head"><span class="sec-title">お支払い方法</span></div>
+    <div style="padding:0 16px">
+      <div class="card">
+
+        <div class="pay-row active" onclick="selectPay(this,'apple')" role="button" tabindex="0" aria-pressed="true">
+          <div class="pay-icon" style="background:#000">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.15-2.19 1.28-2.17 3.82.03 3.02 2.65 4.03 2.68 4.04l-.06.21zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          </div>
+          <div class="pay-body">
+            <div class="pay-name">Apple Pay</div>
+            <div class="pay-sub">Touch ID / Face ID で即時決済</div>
+          </div>
+          <div class="pay-check" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="pay-row" onclick="selectPay(this,'card')" role="button" tabindex="0" aria-pressed="false">
+          <div class="pay-icon" style="background:var(--user-xlight)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--user-primary)" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>
+          </div>
+          <div class="pay-body">
+            <div class="pay-name">クレジットカード</div>
+            <div class="pay-sub">Visa · Mastercard · JCB · American Express</div>
+          </div>
+          <div class="pay-check" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="pay-row" onclick="selectPay(this,'cvs')" role="button" tabindex="0" aria-pressed="false">
+          <div class="pay-icon" style="background:#f0fdf4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div class="pay-body">
+            <div class="pay-name">コンビニ払い</div>
+            <div class="pay-sub">発番後24時間以内に現金でお支払い</div>
+          </div>
+          <div class="pay-check" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 購入ボタン -->
+    <div class="buy-area">
+      <p class="buy-summary" id="buy-summary">新豊橋 → 三河田原　530円 × 1枚　= <strong>530円</strong></p>
+      <button class="btn btn-navy" id="buy-btn" onclick="purchaseTicket()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>
+        乗車券を購入する
+      </button>
+    </div>
+
+  </div>
+</main>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 2 — チケット一覧
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-tickets" aria-label="チケット一覧">
+  <!-- デモ用視点切替パネル -->
+  <div class="demo-switcher-panel" aria-label="デモ用ユーザー切替">
+    <div class="dsp-header">
+      <span class="dsp-badge">DEMO</span>
+      <span class="dsp-label">視点を切り替えて確認</span>
+    </div>
+    <div class="dsp-toggle" role="group" aria-label="表示ユーザー">
+      <button class="dsp-btn active" id="dsw-a" onclick="switchUser('A')" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Aさん<span class="dsp-role">送る側</span>
+      </button>
+      <button class="dsp-btn" id="dsw-b" onclick="switchUser('B')" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Bさん<span class="dsp-role">受け取る側</span>
+        <span class="dsp-new-dot" id="dsp-new-dot" aria-label="新着チケットあり"></span>
+      </button>
+    </div>
+  </div>
+  <!-- 動的リスト -->
+  <div id="tickets-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 3 — QR表示
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-qr" aria-label="QRコード表示">
+  <div class="qr-wrap">
+
+    <div class="ticket-card">
+      <div class="ticket-inner">
+        <div class="ticket-id" id="tk-id">TKR-K2405X9</div>
+        <div class="ticket-chip" id="tk-chip">
+          <span class="chip chip-green"><span class="dot pulse"></span>有効な乗車券</span>
+        </div>
+
+        <!-- 受取チケットバナー（receivedFrom がある場合のみ表示） -->
+        <div class="received-from-banner" id="tk-received-banner" style="display:none" aria-live="polite">
+          <div class="rfb-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div>
+            <span class="rfb-label">受取チケット</span>
+            <span class="rfb-name" id="tk-received-name">田中 花子さんから</span>
+          </div>
+        </div>
+
+        <div class="ticket-route">
+          <div class="ticket-from" id="tk-from">新豊橋</div>
+          <div class="ticket-arrow-row" aria-hidden="true">
+            <span></span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            渥美線
+            <span></span>
+          </div>
+          <div class="ticket-to" id="tk-to">三河田原</div>
+        </div>
+
+        <div class="ticket-qr-wrap">
+          <canvas id="qr-canvas" width="164" height="164" aria-label="乗車券QRコード"></canvas>
+          <div class="qr-used-overlay" id="qr-used-ov">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            <p>使用済み</p>
+            <small id="used-at-label"></small>
+          </div>
+        </div>
+
+        <div class="ticket-tags" id="tk-tags">
+          <!-- dynamic -->
+        </div>
+
+        <div class="ticket-clock" id="tk-clock">--:--:--</div>
+        <div class="ticket-clock-ms" id="tk-ms" aria-hidden="true">.000</div>
+        <div class="ticket-date" id="tk-date"></div>
+      </div>
+
+      <div class="ticket-footer">
+        <span class="ticket-footer-label">本日限り有効</span>
+        <span class="ticket-footer-value" id="tk-fare">¥530</span>
+      </div>
+    </div>
+
+    <div class="qr-actions-row" id="qr-acts">
+      <button class="btn btn-ghost" onclick="openTransferModal()" id="btn-transfer" style="flex:1;padding:13px 12px;font-size:13px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        譲渡する
+      </button>
+      <button class="btn btn-red" onclick="openCancelModal()" id="btn-cancel" style="flex:1;padding:13px 12px;font-size:13px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+        キャンセル
+      </button>
+    </div>
+
+    <div class="qr-hint" id="qr-hint">
+      この画面はリアルタイムで変化しています<br>スクリーンショットでのご利用はできません
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN 4 — 駅員スキャン
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-scan" aria-label="駅員スキャン画面">
+  <div class="staff-screen">
+    <div class="staff-inner">
+
+      <!-- ファインダー -->
+      <div class="viewfinder-wrap">
+        <div class="viewfinder" aria-label="QRスキャン枠">
+          <div class="vf-bg" aria-hidden="true"></div>
+          <div class="vf-corner tl" aria-hidden="true"></div>
+          <div class="vf-corner tr" aria-hidden="true"></div>
+          <div class="vf-corner bl" aria-hidden="true"></div>
+          <div class="vf-corner br" aria-hidden="true"></div>
+          <div class="vf-scan-line" aria-hidden="true"></div>
+          <div class="vf-center-icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+        </div>
+        <p class="viewfinder-hint">利用者のスマートフォンをファインダーに合わせてください</p>
+      </div>
+
+      <!-- デモボタン -->
+      <div class="demo-trigger">
+        <button class="demo-btn-v demo-btn-valid" onclick="demoScanValid()" aria-label="有効券のスキャンをシミュレート">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          有効券をスキャン
+        </button>
+        <button class="demo-btn-v demo-btn-used" onclick="demoScanUsed()" aria-label="使用済み券のスキャンをシミュレート">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+          使用済みをスキャン
+        </button>
+      </div>
+
+      <!-- 結果：有効 -->
+      <div class="result-card" id="res-valid" role="status" aria-live="assertive">
+        <div class="result-head">
+          <div class="result-icon" style="background:rgba(5,150,105,.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <div class="result-status-label" style="color:#34d399">有効な乗車券</div>
+            <div class="result-status-sub">すべての検証に合格しました</div>
+          </div>
+        </div>
+        <div class="result-rows">
+          <div class="result-row">
+            <span class="result-label">乗車券番号</span>
+            <span class="result-value" id="rs-id">TKR-K2405X9</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">乗車区間</span>
+            <span class="result-value large green" id="rs-route">新豊橋 → 三河田原</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">運賃</span>
+            <span class="result-value large" id="rs-fare">¥530</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">購入枚数</span>
+            <span class="result-value" id="rs-qty">1枚</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">お支払い</span>
+            <span class="result-value" id="rs-pay">Apple Pay</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">購入日時</span>
+            <span class="result-value" id="rs-issued">2026-03-23　08:42:17</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">有効期限</span>
+            <span class="result-value amber">2026-03-23　23:59:59</span>
+          </div>
+        </div>
+        <div class="validation-row">
+          <span class="vbadge ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+            署名検証OK
+          </span>
+          <span class="vbadge ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+            有効期限内
+          </span>
+          <span class="vbadge ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+            未使用
+          </span>
+          <span class="vbadge ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+            区間一致
+          </span>
+        </div>
+        <div class="staff-actions">
+          <button class="btn btn-green" onclick="markUsed()" style="flex:1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            使用済みにする
+          </button>
+          <button class="btn btn-ghost" onclick="resetScan()" style="flex:1">戻る</button>
+        </div>
+      </div>
+
+      <!-- 結果：使用済み -->
+      <div class="result-card" id="res-used" role="alert" aria-live="assertive">
+        <div class="result-head">
+          <div class="result-icon" style="background:rgba(220,38,38,.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+          </div>
+          <div>
+            <div class="result-status-label" style="color:#f87171">使用済み乗車券</div>
+            <div class="result-status-sub">この乗車券はすでに改札を通過しています</div>
+          </div>
+        </div>
+        <div class="result-rows">
+          <div class="result-row">
+            <span class="result-label">乗車区間</span>
+            <span class="result-value red" id="ru-route">新豊橋 → 三河田原</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">使用時刻</span>
+            <span class="result-value red" id="ru-used-at">本日 08:47:33</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">ステータス</span>
+            <span class="result-value red">使用済み · 再利用不可</span>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <button class="btn btn-ghost" onclick="resetScan()" style="flex:1;color:rgba(255,255,255,.7);background:rgba(255,255,255,.08)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            戻る
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+    </div><!-- /.app-scroll -->
+
+<!-- ══════════════════════════════════════════════
+     BOTTOM NAV
+══════════════════════════════════════════════ -->
+<nav class="bottom-nav" role="navigation" aria-label="メインナビゲーション">
+  <button class="nav-btn user-tab active" id="nav-purchase" onclick="showScreen('purchase')" aria-label="購入">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>
+    <span>購入</span>
+  </button>
+  <button class="nav-btn user-tab" id="nav-tickets" onclick="showScreen('tickets')" aria-label="チケット">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+    <span>チケット</span>
+  </button>
+  <!-- 区切り -->
+  <div class="nav-separator" aria-hidden="true"></div>
+  <!-- 駅員タブ -->
+  <button class="nav-btn staff-tab" id="nav-scan" onclick="showScreen('scan')" aria-label="駅員スキャン">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span>スキャン</span>
+    <span class="nav-staff-label">駅員専用</span>
+  </button>
+</nav>
+
+<!-- Toast -->
+<div class="toast-wrap" aria-live="polite" aria-atomic="true">
+  <div class="toast toast-default" id="toast" role="status"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: TRANSFER
+══════════════════════════════════════════════ -->
+<div class="modal-wrap" id="modal-transfer" role="dialog" aria-modal="true" aria-labelledby="mod-transfer-title" onclick="bgClose(event,'modal-transfer')">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title" id="mod-transfer-title">チケットを譲渡する</h2>
+    <p class="sheet-sub">以下の6桁コードをお子様や同行者にお伝えください。クレジットカードなしで乗車券を受取ることができます。</p>
+    <div class="transfer-code-box">
+      <div class="transfer-code-heading">譲渡コード（30分有効）</div>
+      <div class="transfer-code-num" id="tr-code" aria-label="譲渡コード">---  ---</div>
+      <div class="transfer-code-exp" id="tr-expire"></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <button class="btn btn-ghost" onclick="copyCode()" style="width:100%;gap:8px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        コードをコピー
+      </button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-red" onclick="closeModal('modal-transfer')" style="flex:1">閉じる</button>
+      <button class="btn btn-navy" onclick="confirmTransfer()" style="flex:1">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        譲渡を確定する
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: RECEIVE
+══════════════════════════════════════════════ -->
+<div class="modal-wrap" id="modal-receive" role="dialog" aria-modal="true" aria-labelledby="mod-receive-title" onclick="bgClose(event,'modal-receive')">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title" id="mod-receive-title">チケットを受取る</h2>
+    <p class="sheet-sub">保護者またはご家族から受け取った6桁の譲渡コードを入力してください。</p>
+    <div style="margin-bottom:14px">
+      <input class="code-input" id="recv-input"
+        type="text" maxlength="7"
+        placeholder="ABC  123"
+        aria-label="譲渡コード6桁"
+        oninput="fmtCode(this)"
+        onkeyup="if(event.key==='Enter')submitCode()">
+    </div>
+    <div class="err-box" id="recv-err" role="alert"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('modal-receive')" style="flex:1">閉じる</button>
+      <button class="btn btn-navy" onclick="submitCode()" style="flex:1">受取る</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: CANCEL
+══════════════════════════════════════════════ -->
+<div class="modal-wrap" id="modal-cancel" role="dialog" aria-modal="true" aria-labelledby="mod-cancel-title" onclick="bgClose(event,'modal-cancel')">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title" id="mod-cancel-title">キャンセルの確認</h2>
+    <div class="cancel-warn">
+      <p>この操作は取り消すことができません。キャンセル後、乗車券は即座に無効になります。</p>
+    </div>
+    <div class="refund-box">
+      <div class="refund-row"><span class="refund-label">対象チケット</span><span class="refund-val" id="can-info">---</span></div>
+      <div class="refund-row"><span class="refund-label">払戻金額</span><span class="refund-val green" id="can-refund">---</span></div>
+      <div class="refund-row"><span class="refund-label">払戻方法</span><span class="refund-val">元のお支払い方法へ返金</span></div>
+      <div class="refund-row"><span class="refund-label">処理期間</span><span class="refund-val">3〜5営業日</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cancel')" style="flex:1">やめる</button>
+      <button class="btn btn-red" onclick="confirmCancel()" style="flex:1">キャンセルする</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+/* ────────── DATA ────────── */
+const STATIONS = ['新豊橋','柳生橋','小池','愛知大学前','南栄','高師','芦原','植田','向ヶ丘','大清水','老津','杉山','やぐま台','豊島','神戸','三河田原'];
+const PAY_LABELS = { apple:'Apple Pay', card:'クレジットカード', cvs:'コンビニ払い' };
+
+let tickets  = [];
+let activeTkt = null;
+let qty = 1;
+let payMethod = 'apple';
+let raf = null;
+let currentUser = 'A'; // 'A'=送り手, 'B'=受け手
+let xferCode = null;
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function now(){ const n=new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}` }
+function todayStr(){ const n=new Date(); return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}` }
+function uid(){ return 'TKR-'+Math.random().toString(36).slice(2,10).toUpperCase(); }
+function code6(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return [...Array(6)].map(()=>c[Math.floor(Math.random()*c.length)]).join(''); }
+
+function calcFare(f,t){
+  const fi=STATIONS.indexOf(f), ti=STATIONS.indexOf(t);
+  if(fi<0||ti<0||fi===ti) return null;
+  const d=Math.abs(fi-ti);
+  return d<=2?180 : d<=4?260 : d<=7?360 : d<=10?440 : 530;
+}
+
+function distLabel(f,t){
+  const fi=STATIONS.indexOf(f), ti=STATIONS.indexOf(t);
+  if(fi<0||ti<0) return '';
+  const d=Math.abs(fi-ti);
+  return `${d}駅区間`;
+}
+
+/* ────────── INIT DEMO DATA ────────── */
+(function(){
+  const n = now(), td = todayStr();
+  // Aさん: 有効チケット（2枚グループ）
+  const g1 = uid().replace('TKR-','GRP-');
+  ['TKR-K2405X9','TKR-K2405XA'].forEach((id,i)=>tickets.push({
+    id, groupId:g1, from:'新豊橋', to:'三河田原', fare:530, qty:2,
+    isGroupLead:i===0, issuedAt:td, issuedAtStr:'08:42:17', state:'valid',
+    pay:'apple', usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:null, owner:'A',
+  }));
+  // Aさん: 使用済みチケット
+  tickets.push({
+    id:'TKR-Z9Y1W2P', groupId:null, from:'新豊橋', to:'高師', fare:260, qty:1,
+    isGroupLead:true, issuedAt:td, issuedAtStr:'07:02:44', state:'used',
+    pay:'card', usedAt:'07:52:11', cancelledAt:null, xferCode:null, receivedFrom:null, owner:'A',
+  });
+  // Bさん: 受取チケット（Aさんから譲渡受取済み）
+  tickets.push({
+    id:'TKR-R8B3C1D', groupId:null, from:'南栄', to:'大清水', fare:180, qty:1,
+    isGroupLead:true, issuedAt:td, issuedAtStr:'07:15:33', state:'received',
+    pay:'apple', usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:'Aさん', owner:'B',
+  });
+})();
+
+/* ────────── PURCHASE ────────── */
+function onRouteChange(){
+  const f=document.getElementById('from-st').value;
+  const t=document.getElementById('to-st').value;
+  const fare=calcFare(f,t);
+  const dl=distLabel(f,t);
+  document.getElementById('fare-num').textContent = fare ?? '---';
+  document.getElementById('fare-distance-note').textContent = (f&&t&&f!==t) ? dl : '区間を選択してください';
+  updateQtyTotal();
+  updateBuySummary();
+}
+
+function changeQty(d){
+  qty=Math.min(5,Math.max(1,qty+d));
+  document.getElementById('qty-num').textContent=qty;
+  updateQtyTotal();
+  updateBuySummary();
+}
+
+function updateQtyTotal(){
+  const f=document.getElementById('from-st').value;
+  const t=document.getElementById('to-st').value;
+  const fare=calcFare(f,t);
+  const el=document.getElementById('qty-total');
+  if(fare) el.textContent=`合計　${(fare*qty).toLocaleString()} 円（${qty}枚）`;
+  else el.textContent='合計　--- 円';
+}
+
+function updateBuySummary(){
+  const f=document.getElementById('from-st').value;
+  const t=document.getElementById('to-st').value;
+  const fare=calcFare(f,t);
+  const el=document.getElementById('buy-summary');
+  if(f&&t&&fare){
+    const total=(fare*qty).toLocaleString();
+    el.innerHTML=`${f} → ${t}　${fare}円 × ${qty}枚　= <strong>${total}円</strong>`;
+  } else {
+    el.innerHTML='乗車区間を選択してください';
+  }
+}
+
+function selectPay(el,key){
+  document.querySelectorAll('.pay-row').forEach(r=>{ r.classList.remove('active'); r.setAttribute('aria-pressed','false'); });
+  el.classList.add('active'); el.setAttribute('aria-pressed','true');
+  payMethod=key;
+}
+
+function purchaseTicket(){
+  const f=document.getElementById('from-st').value;
+  const t=document.getElementById('to-st').value;
+  if(!f||!t||f===t){ showToast('乗車駅と降車駅を正しく選択してください','error'); return; }
+  const fare=calcFare(f,t);
+  const btn=document.getElementById('buy-btn');
+  btn.disabled=true;
+  btn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .7s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>処理中...`;
+
+  setTimeout(()=>{
+    const gid = qty>1 ? uid().replace('TKR-','GRP-') : null;
+    const created=[];
+    for(let i=0;i<qty;i++){
+      const tkt={
+        id:uid(), groupId:gid, from:f, to:t, fare, qty,
+        isGroupLead:i===0, issuedAt:todayStr(), issuedAtStr:now(), state:'valid',
+        pay:payMethod, usedAt:null, cancelledAt:null, xferCode:null, receivedFrom:null, owner:currentUser,
+      };
+      tickets.push(tkt); created.push(tkt);
+    }
+    btn.disabled=false;
+    btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>乗車券を購入する`;
+    openQR(created[0].id);
+    showToast(`乗車券を${qty}枚購入しました`,'success');
+    qty=1; document.getElementById('qty-num').textContent='1'; updateQtyTotal(); updateBuySummary();
+  },900);
+}
+
+/* ────────── QR DISPLAY ────────── */
+function openQR(id){
+  const t=tickets.find(x=>x.id===id); if(!t) return;
+  activeTkt=id;
+
+  document.getElementById('tk-id').textContent=t.id;
+  document.getElementById('tk-from').textContent=t.from;
+  document.getElementById('tk-to').textContent=t.to;
+  document.getElementById('tk-fare').textContent=`¥${(t.fare*(t.qty||1)).toLocaleString()}`;
+
+  // Status chip
+  const chips={
+    valid:'<span class="chip chip-green"><span class="dot pulse"></span>有効な乗車券</span>',
+    received:'<span class="chip chip-blue"><span class="dot"></span>受取済み乗車券</span>',
+    used:'<span class="chip chip-gray">使用済み</span>',
+    cancelled:'<span class="chip chip-red">キャンセル済み</span>',
+    transferred:'<span class="chip chip-amber">譲渡済み</span>',
+  };
+  document.getElementById('tk-chip').innerHTML=chips[t.state]||'';
+
+  // 受取バナー
+  const rfb=document.getElementById('tk-received-banner');
+  if(t.receivedFrom){
+    rfb.style.display='flex';
+    document.getElementById('tk-received-name').textContent=`${t.receivedFrom}さんから`;
+  } else {
+    rfb.style.display='none';
+  }
+
+  // Tags
+  let tags='';
+  if(t.qty>1&&t.isGroupLead) tags+=`<span class="chip chip-blue"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${t.qty}枚同時利用</span>`;
+  if(t.receivedFrom) tags+=`<span class="chip chip-blue"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v13M6 11l6 6 6-6"/></svg>${t.receivedFrom}さんから</span>`;
+  if(t.pay==='cvs') tags+=`<span class="chip chip-amber">コンビニ払い</span>`;
+  document.getElementById('tk-tags').innerHTML=tags;
+
+  // Used overlay
+  const ov=document.getElementById('qr-used-ov');
+  ov.classList.toggle('show', t.state==='used');
+  if(t.state==='used') document.getElementById('used-at-label').textContent=`使用時刻: ${t.usedAt}`;
+
+  // Actions
+  const acts=document.getElementById('qr-acts');
+  const hint=document.getElementById('qr-hint');
+  if(t.state==='valid'||t.state==='received'){
+    acts.style.display='flex'; hint.style.display='block';
+    document.getElementById('btn-transfer').disabled=false;
+    document.getElementById('btn-cancel').disabled=false;
+  } else {
+    acts.style.display='none'; hint.style.display='none';
+  }
+
+  // 先に画面遷移してからQR生成（QRエラーで遷移がブロックされないよう）
+  showScreen('qr');
+  const _as=document.getElementById('app-scroll'); if(_as) _as.scrollTop=0;
+  if(t.state==='valid'||t.state==='received') startBg(); else stopBg();
+
+  // QR code
+  const payload=JSON.stringify({id:t.id,from:t.from,to:t.to,fare:t.fare,qty:t.qty,issued:t.issuedAt,state:t.state,sig:'eyJhbGciOiJIUzI1NiJ9.DEMO'});
+  try {
+    QRCode.toCanvas(document.getElementById('qr-canvas'),payload,{width:164,margin:2,color:{dark:'#1B3A6B',light:'#ffffff'}});
+  } catch(e) {
+    console.warn('QR生成エラー:', e);
+  }
+}
+
+function startBg(){
+  stopBg();
+  const bg=document.getElementById('qr-bg');
+  const raf2=()=>{
+    const n=new Date();
+    document.getElementById('tk-clock').textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+    document.getElementById('tk-ms').textContent=`.${String(n.getMilliseconds()).padStart(3,'0')}`;
+    const days=['日','月','火','水','木','金','土'];
+    document.getElementById('tk-date').textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日（${days[n.getDay()]}）`;
+    const s=Date.now()/1000;
+    const h1=(s*16)%360, h2=(h1+50)%360;
+    bg.style.background=`linear-gradient(${(s*10)%360}deg,hsl(${h1},55%,20%),hsl(${h2},45%,14%))`;
+    raf=requestAnimationFrame(raf2);
+  };
+  raf2();
+}
+function stopBg(){
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  document.getElementById('qr-bg').style.background='linear-gradient(135deg,#1B3A6B,#1E293B)';
+}
+
+/* ────────── TICKET LIST ────────── */
+function switchUser(user){
+  currentUser = user;
+  ['A','B'].forEach(u=>{
+    const btn=document.getElementById('dsw-'+u.toLowerCase());
+    if(btn){ btn.classList.toggle('active', u===user); btn.setAttribute('aria-pressed', u===user); }
+  });
+  // Bに切り替えた時は通知ドットを消す
+  if(user==='B'){ const d=document.getElementById('dsp-new-dot'); if(d) d.classList.remove('show'); }
+  activeTkt=null;
+  showScreen('tickets');
+}
+
+function renderList(){
+  const el=document.getElementById('tickets-list');
+  if(!el) return;
+  const shown=tickets.filter(t=>(t.owner===currentUser)&&(t.qty===1||t.isGroupLead));
+  if(!shown.length){
+    el.innerHTML=`<div class="empty-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+      <div class="empty-title">チケットがありません</div>
+      <div class="empty-sub">「購入」タブから乗車券をお求めください</div>
+    </div>`;
+    return;
+  }
+
+  const iconBg  ={valid:'var(--user-xlight)',received:'var(--user-xlight)',used:'var(--n100)',cancelled:'var(--danger-bg)',transferred:'var(--warning-bg)'};
+  const iconClr ={valid:'var(--user-primary)',received:'var(--user-primary)',used:'var(--n400)',cancelled:'var(--danger)',transferred:'var(--warning)'};
+  const stateChip={
+    valid:       '<span class="chip chip-green"><span class="dot pulse"></span>有効</span>',
+    received:    '<span class="chip chip-blue"><span class="dot"></span>受取済み</span>',
+    used:        '<span class="chip chip-gray">使用済み</span>',
+    cancelled:   '<span class="chip chip-red">取消済み</span>',
+    transferred: '<span class="chip chip-amber">譲渡済み</span>',
+  };
+
+  const sections=[
+    {label:'有効なチケット', states:['valid']},
+    {label:'受取チケット',   states:['received']},
+    {label:'譲渡済み',       states:['transferred']},
+    {label:'使用済み',       states:['used']},
+    {label:'キャンセル済み', states:['cancelled']},
+  ];
+
+  let html='';
+  sections.forEach(sec=>{
+    const list=shown.filter(t=>sec.states.includes(t.state));
+    if(!list.length) return;
+    html+=`<div class="sec-head"><span class="sec-title">${sec.label}</span><span class="sec-count">${list.length}枚</span></div>
+    <div style="padding:0 16px"><div class="card">`;
+    list.forEach((t,i)=>{
+      const qBadge=t.qty>1?`<span class="chip chip-blue" style="font-size:10px">${t.qty}枚</span>`:'';
+      const clickable=t.state!=='transferred';
+      html+=`${i>0?'<div class="divider"></div>':''}
+      <div class="tkt-item${clickable?'':' tkt-item--dim'}" ${clickable?`onclick="openQR('${t.id}')" role="button" tabindex="0"`:''}  aria-label="${t.from}から${t.to}への乗車券">
+        <div class="tkt-icon" style="background:${iconBg[t.state]}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${iconClr[t.state]}" stroke-width="2"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+        </div>
+        <div class="tkt-body">
+          <div class="tkt-route">${t.from}  →  ${t.to} ${qBadge}</div>
+          <div class="tkt-meta">${stateChip[t.state]}<span class="tkt-time">${t.issuedAtStr} 購入</span>${t.receivedFrom?`<span class="tkt-time">${t.receivedFrom}から</span>`:''}</div>
+        </div>
+        <div class="tkt-right">
+          <div class="tkt-fare">¥${(t.fare*(t.qty||1)).toLocaleString()}</div>
+          ${clickable?'<div class="tkt-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>':''}
+        </div>
+      </div>`;
+    });
+    html+='</div></div><div style="height:12px"></div>';
+  });
+  el.innerHTML=html;
+}
+
+/* ────────── TRANSFER ────────── */
+function openTransferModal(){
+  const t=tickets.find(x=>x.id===activeTkt);
+  if(!t||(t.state!=='valid'&&t.state!=='received')) return;
+  const raw=code6();
+  xferCode=raw.slice(0,3)+' '+raw.slice(3);
+  document.getElementById('tr-code').textContent=xferCode;
+  const exp=new Date(Date.now()+30*60000);
+  document.getElementById('tr-expire').textContent=`有効期限 ${pad(exp.getHours())}:${pad(exp.getMinutes())} まで`;
+  openModal('modal-transfer');
+}
+function copyCode(){
+  if(!xferCode) return;
+  navigator.clipboard.writeText(xferCode.replace(/\s/g,'')).then(()=>showToast('コードをコピーしました','success')).catch(()=>showToast('コピーできませんでした','error'));
+}
+function confirmTransfer(){
+  const t=tickets.find(x=>x.id===activeTkt); if(!t) return;
+  t.state='transferred'; t.xferCode=xferCode;
+  closeModal('modal-transfer');
+  // Bさんボタンに通知ドット表示
+  const dot=document.getElementById('dsp-new-dot'); if(dot) dot.classList.add('show');
+  showToast('譲渡完了 — Bさんが受取コードを入力します','success');
+  // プレゼン用：受取モーダルをコード入力済みで即表示
+  setTimeout(()=>openReceiveModalWithCode(xferCode), 700);
+}
+
+/* ────────── RECEIVE ────────── */
+function openReceiveModal(){
+  // 譲渡済みチケットがあればコードを自動セット（プレゼン用）
+  const lastXfer=tickets.find(x=>x.state==='transferred'&&x.xferCode);
+  openReceiveModalWithCode(lastXfer ? lastXfer.xferCode : '');
+}
+function openReceiveModalWithCode(prefill){
+  document.getElementById('recv-err').style.display='none';
+  const input=document.getElementById('recv-input');
+  input.value=prefill||'';
+  openModal('modal-receive');
+  // prefillがあれば入力欄をハイライトして「すぐ押せる」状態にする
+  if(prefill) input.style.borderColor='var(--user-primary)';
+  else input.style.borderColor='';
+}
+function fmtCode(el){
+  let v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,6);
+  if(v.length>3) v=v.slice(0,3)+' '+v.slice(3);
+  el.value=v;
+}
+function submitCode(){
+  const raw=document.getElementById('recv-input').value.replace(/\s/g,'').toUpperCase();
+  const err=document.getElementById('recv-err');
+  // プレゼン用：コードが空でも譲渡済みチケットがあれば通す
+  const found=tickets.find(x=>x.state==='transferred'&&x.xferCode&&x.xferCode.replace(/\s/g,'')===raw)
+    || (raw.length===0 && tickets.find(x=>x.state==='transferred'));
+  if(!found){
+    if(raw.length<6){ err.textContent='コードは6文字です。もう一度ご確認ください。'; err.style.display='block'; return; }
+    err.textContent='コードが見つかりませんでした。番号をお確かめください。'; err.style.display='block'; return;
+  }
+  // Bさん側に新規チケットを作成（Aさんの元チケットはそのまま「譲渡済み」に残す）
+  const newTkt={...found, id:uid(), owner:'B', state:'received', receivedFrom:'Aさん', xferCode:null, isGroupLead:true, qty:1};
+  tickets.push(newTkt);
+  err.style.display='none'; closeModal('modal-receive');
+  // Bさん視点に切り替えてQR表示
+  currentUser='B';
+  ['A','B'].forEach(u=>{ const b=document.getElementById('dsw-'+u.toLowerCase()); if(b){ b.classList.toggle('active',u==='B'); b.setAttribute('aria-pressed',u==='B'); }});
+  showToast('Bさんがチケットを受取りました','success');
+  openQR(newTkt.id);
+}
+
+/* ────────── CANCEL ────────── */
+function openCancelModal(){
+  const t=tickets.find(x=>x.id===activeTkt); if(!t||(t.state!=='valid'&&t.state!=='received')) return;
+  document.getElementById('can-info').textContent=`${t.from} → ${t.to}（${t.qty}枚）`;
+  document.getElementById('can-refund').textContent=`¥${(t.fare*t.qty).toLocaleString()}`;
+  openModal('modal-cancel');
+}
+function confirmCancel(){
+  const t=tickets.find(x=>x.id===activeTkt); if(!t) return;
+  const targets=t.groupId ? tickets.filter(x=>x.groupId===t.groupId) : [t];
+  targets.forEach(x=>{ x.state='cancelled'; x.cancelledAt=now(); });
+  closeModal('modal-cancel');
+  showToast('乗車券をキャンセルしました','success');
+  showScreen('tickets');
+}
+
+/* ────────── STAFF SCAN ────────── */
+function demoScanValid(){
+  const t=tickets.find(x=>x.state==='valid'&&(x.qty===1||x.isGroupLead));
+  const v=document.getElementById('res-valid');
+  const u=document.getElementById('res-used');
+  v.classList.add('show'); u.classList.remove('show');
+  if(t){
+    document.getElementById('rs-id').textContent=t.id;
+    document.getElementById('rs-route').textContent=`${t.from} → ${t.to}`;
+    document.getElementById('rs-fare').textContent=`¥${t.fare.toLocaleString()}`;
+    document.getElementById('rs-qty').textContent=`${t.qty}枚`;
+    document.getElementById('rs-pay').textContent=PAY_LABELS[t.pay]||t.pay;
+    document.getElementById('rs-issued').textContent=`${t.issuedAt}　${t.issuedAtStr}`;
+  }
+}
+function demoScanUsed(){
+  const t=tickets.find(x=>x.state==='used'&&(x.qty===1||x.isGroupLead));
+  document.getElementById('res-valid').classList.remove('show');
+  const u=document.getElementById('res-used');
+  u.classList.add('show');
+  if(t){
+    document.getElementById('ru-route').textContent=`${t.from} → ${t.to}`;
+    document.getElementById('ru-used-at').textContent=`本日 ${t.usedAt||'--:--:--'}`;
+  }
+}
+function markUsed(){
+  const t=tickets.find(x=>x.state==='valid');
+  if(t){
+    const ts=now();
+    const grp=t.groupId?tickets.filter(x=>x.groupId===t.groupId):[t];
+    grp.forEach(x=>{x.state='used';x.usedAt=ts;});
+    document.getElementById('ru-route').textContent=`${t.from} → ${t.to}`;
+    document.getElementById('ru-used-at').textContent=`本日 ${ts}`;
+  }
+  document.getElementById('res-valid').classList.remove('show');
+  document.getElementById('res-used').classList.add('show');
+  showToast('使用済みにしました','success');
+}
+function resetScan(){
+  document.getElementById('res-valid').classList.remove('show');
+  document.getElementById('res-used').classList.remove('show');
+}
+
+/* ────────── NAV ────────── */
+const SCREENS={purchase:'screen-purchase',tickets:'screen-tickets',qr:'screen-qr',scan:'screen-scan'};
+const NAV={purchase:'nav-purchase',tickets:'nav-tickets',qr:'nav-tickets',scan:'nav-scan'};
+
+function showScreen(name){
+  stopBg();
+  const _as=document.getElementById('app-scroll'); if(_as) _as.scrollTop=0;
+  Object.values(SCREENS).forEach(id=>{ const e=document.getElementById(id); if(e) e.classList.remove('active'); });
+  const sc=document.getElementById(SCREENS[name]); if(sc) sc.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const nb=document.getElementById(NAV[name]); if(nb) nb.classList.add('active');
+
+  // Role banner + header
+  const isStaff=(name==='scan');
+  const banner=document.getElementById('role-banner');
+  const header=document.getElementById('main-header');
+  const logo=header.querySelector('.header-logo svg');
+  const htitle=document.getElementById('header-title');
+  const hsub=document.getElementById('header-sub');
+  const hbadge=document.getElementById('header-badge');
+  const rlabel=document.getElementById('role-label');
+
+  if(isStaff){
+    banner.className='role-banner staff-mode'; rlabel.textContent='駅員専用画面';
+    header.className='header staff-mode';
+    logo.setAttribute('stroke','#0F172A');
+    htitle.textContent='スキャン端末'; hsub.textContent='改札・乗車確認システム';
+    hbadge.textContent='STAFF'; hbadge.style.background=''; hbadge.style.color='';
+  } else {
+    banner.className='role-banner user-mode'; rlabel.textContent='利用者画面';
+    header.className='header user-mode';
+    logo.setAttribute('stroke','#1B3A6B');
+    htitle.textContent='QR Pass'; hsub.textContent='豊橋鉄道デジタル乗車券';
+    hbadge.textContent='DEMO'; hbadge.style.background=''; hbadge.style.color='';
+  }
+
+  if(name==='tickets') renderList();
+  if(name==='qr'&&activeTkt){ const t=tickets.find(x=>x.id===activeTkt); if(t&&(t.state==='valid'||t.state==='received')) startBg(); }
+  if(name==='scan') resetScan();
+}
+
+/* ────────── MODAL ────────── */
+function openModal(id){ document.getElementById(id).classList.add('show'); document.getElementById('app-scroll').style.overflowY='hidden'; }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); document.getElementById('app-scroll').style.overflowY=''; }
+function bgClose(e,id){ if(e.target.id===id) closeModal(id); }
+
+/* ────────── TOAST ────────── */
+let ttimer=null;
+const TOAST_ICONS={
+  success:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  error:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+};
+function showToast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.className=`toast show toast-${type||'default'}`;
+  el.innerHTML=(TOAST_ICONS[type]||'')+`<span>${msg}</span>`;
+  if(ttimer) clearTimeout(ttimer);
+  ttimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+/* ────────── INIT ────────── */
+const css=document.createElement('style');
+css.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(css);
+
+onRouteChange(); // set initial fare display
+</script>
+
+  </div><!-- /.phone-screen -->
+  <div class="phone-home-bar"></div>
+</div><!-- /.phone-shell -->
+
+</body>
+</html>
